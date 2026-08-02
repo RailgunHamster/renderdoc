@@ -36,7 +36,7 @@
 #include <android_native_app_glue.h>
 
 #include <android/log.h>
-#define ANDROID_LOG(...) __android_log_print(ANDROID_LOG_INFO, "renderdoccmd", __VA_ARGS__);
+#define ANDROID_LOG(...) __android_log_print(ANDROID_LOG_INFO, "RenderTestcmd", __VA_ARGS__);
 
 struct android_app *android_state;
 pthread_t cmdthread_handle = 0;
@@ -190,7 +190,7 @@ float circle(in vec2 uv, in vec2 centre, in float radius)
   return length(uv - centre) - radius;
 }
 
-// distance field for RenderDoc logo
+// distance field for RenderTest logo
 float logo(in vec2 uv)
 {
   // add the outer ring
@@ -397,10 +397,10 @@ void DisplayRendererPreview(IReplayController *renderer, TextureDisplay &display
   m_DrawLock.unlock();
 }
 
-// Returns the renderdoccmd arguments passed via am start
-// Examples: am start ... -e renderdoccmd "remoteserver"
-// -e renderdoccmd "replay /sdcard/capture.rdc"
-std::vector<std::string> getRenderdoccmdArgs()
+// Returns the RenderTestcmd arguments passed via am start
+// Examples: am start ... -e RenderTestcmd "remoteserver"
+// -e RenderTestcmd "replay /sdcard/capture.rdc"
+std::vector<std::string> getRenderTestcmdArgs()
 {
   JNIEnv *env;
   android_state->activity->vm->AttachCurrentThread(&env, 0);
@@ -415,12 +415,12 @@ std::vector<std::string> getRenderdoccmdArgs()
   jmethodID gseid =
       env->GetMethodID(icl, "getStringExtra", "(Ljava/lang/String;)Ljava/lang/String;");
 
-  jstring jsParam1 = (jstring)env->CallObjectMethod(intent, gseid, env->NewStringUTF("renderdoccmd"));
+  jstring jsParam1 = (jstring)env->CallObjectMethod(intent, gseid, env->NewStringUTF("RenderTestcmd"));
 
   std::vector<std::string> ret;
   if(jsParam1)    // Check if arg value found
   {
-    ret.push_back("renderdoccmd");
+    ret.push_back("RenderTestcmd");
     const char *param1 = env->GetStringUTFChars(jsParam1, 0);
     std::istringstream iss(param1);
     while(iss)
@@ -437,13 +437,13 @@ std::vector<std::string> getRenderdoccmdArgs()
 
 void *cmdthread(void *)
 {
-  std::vector<std::string> args = getRenderdoccmdArgs();
+  std::vector<std::string> args = getRenderTestcmdArgs();
   if(args.size())
   {
     ANDROID_LOG("Entering cmd thread");
     m_CmdLock.lock();
     GlobalEnvironment env;
-    renderdoccmd(env, args);
+    RenderTestcmd(env, args);
     m_CmdLock.unlock();
     ANDROID_LOG("Exiting cmd thread");
   }

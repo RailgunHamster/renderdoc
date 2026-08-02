@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Development|Win32">
@@ -21,7 +21,7 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{0AAE0AD1-371B-4A36-9ED1-80E10E960605}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>renderdoc_spirv</RootNamespace>
+    <RootNamespace>RENDERTEST_spirv</RootNamespace>
     <ProjectName>spirv</ProjectName>
   </PropertyGroup>
   <Import Project="$(SolutionDir)\util\WindowsSDKTarget.props" />
@@ -66,7 +66,7 @@
       <MinimalRebuild>false</MinimalRebuild>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <AdditionalIncludeDirectories>$(SolutionDir)renderdoc\;$(SolutionDir)renderdoc\3rdparty\;$(SolutionDir)renderdoc\3rdparty\glslang\</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>AMD_EXTENSIONS;NV_EXTENSIONS;GLSLANG_OSINCLUDE_WIN32;RENDERDOC_EXPORTS;RENDERDOC_PLATFORM_WIN32;WIN32;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>AMD_EXTENSIONS;NV_EXTENSIONS;GLSLANG_OSINCLUDE_WIN32;RENDERTEST_EXPORTS;RENDERTEST_PLATFORM_WIN32;WIN32;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <WarningLevel>Level3</WarningLevel>
       <TreatWarningAsError>true</TreatWarningAsError>
       <AdditionalOptions>/w44062 /w44840 %(AdditionalOptions)</AdditionalOptions>

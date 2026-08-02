@@ -25,7 +25,11 @@
 
 #include "core/core.h"
 #include "hooks/hooks.h"
+#include "hooks/inline_hooks.h"
 #include "dxgi_wrapped.h"
+#include <winternl.h>
+
+extern "C" void InstallDXGIFactoryInlineHooks();
 
 typedef HRESULT(WINAPI *PFN_CREATE_DXGI_FACTORY)(REFIID, void **);
 typedef HRESULT(WINAPI *PFN_CREATE_DXGI_FACTORY2)(UINT, REFIID, void **);
@@ -39,7 +43,7 @@ IDXGraphicsAnalysis : public IUnknown
   virtual void STDMETHODCALLTYPE EndCapture() = 0;
 };
 
-struct RenderDocAnalysis : IDXGraphicsAnalysis
+struct RenderTestAnalysis : IDXGraphicsAnalysis
 {
   // IUnknown boilerplate
   HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject) { return E_NOINTERFACE; }
@@ -55,17 +59,17 @@ struct RenderDocAnalysis : IDXGraphicsAnalysis
   void STDMETHODCALLTYPE BeginCapture()
   {
     DeviceOwnedWindow devWnd;
-    RenderDoc::Inst().GetActiveWindow(devWnd);
+    RenderTest::Inst().GetActiveWindow(devWnd);
 
-    RenderDoc::Inst().StartFrameCapture(devWnd);
+    RenderTest::Inst().StartFrameCapture(devWnd);
   }
 
   void STDMETHODCALLTYPE EndCapture()
   {
     DeviceOwnedWindow devWnd;
-    RenderDoc::Inst().GetActiveWindow(devWnd);
+    RenderTest::Inst().GetActiveWindow(devWnd);
 
-    RenderDoc::Inst().EndFrameCapture(devWnd);
+    RenderTest::Inst().EndFrameCapture(devWnd);
   }
 };
 
@@ -249,6 +253,17 @@ public:
   {
     RDCLOG("Registering DXGI hooks");
 
+    // file switch: disable DXGI hooking entirely. Wrapping the DXGI factory
+    // breaks this game's D3D12 device initialisation (wrapped adapter is passed
+    // to the real D3D12CreateDevice -> failure -> the game retries loading
+    // d3d12 every ~20s forever).
+    if(GetFileAttributesA("D:\\git\\renderdoc-nikki\\nikki\\nikkiproxy_disable_dxgi_hooks.txt") !=
+       INVALID_FILE_ATTRIBUTES)
+    {
+      RDCLOG("DXGI hooks disabled by file switch");
+      return;
+    }
+
     LibraryHooks::RegisterLibraryHook("dxgi.dll", NULL);
 
     CreateDXGIFactory.Register("dxgi.dll", "CreateDXGIFactory", CreateDXGIFactory_hook);
@@ -256,12 +271,62 @@ public:
     CreateDXGIFactory2.Register("dxgi.dll", "CreateDXGIFactory2", CreateDXGIFactory2_hook);
     GetDebugInterface.Register("dxgi.dll", "DXGIGetDebugInterface", DXGIGetDebugInterface_hook);
     GetDebugInterface1.Register("dxgi.dll", "DXGIGetDebugInterface1", DXGIGetDebugInterface1_hook);
+
+    // dxgi factory inline hooking via restore-call-repatch (no trampolines:
+    // trampolines crash in this game). Installed so that even if the game
+    // obtains the factory entry points through GetProcAddress (not IAT) it
+    // still ends up in our wrappers.
+    InstallDXGIFactoryInlineHooks();
+  }
+
+public:
+  static void *s_cfFunc;
+  static uint8_t s_cfOrig[12];
+  static void *s_cf1Func;
+  static uint8_t s_cf1Orig[12];
+  static void *s_cf2Func;
+  static uint8_t s_cf2Orig[12];
+
+  static HRESULT WINAPI CreateDXGIFactory_inline_hook(__in REFIID riid, __out void **ppFactory)
+  {
+    RestoreInlineHookBytes(s_cfFunc, s_cfOrig);
+    // Call the real function directly: the HookedFunction's orig may be NULL
+    // because the game delay-loads dxgi.dll after registration.
+    typedef HRESULT(WINAPI *PFN_CDXGI)(REFIID, void **);
+    HRESULT ret = ((PFN_CDXGI)s_cfFunc)(riid, ppFactory);
+    if(SUCCEEDED(ret))
+      RefCountDXGIObject::HandleWrap("CreateDXGIFactory", riid, ppFactory);
+    PatchInlineHookBytes(s_cfFunc, (void *)&CreateDXGIFactory_inline_hook);
+    return ret;
+  }
+
+  static HRESULT WINAPI CreateDXGIFactory1_inline_hook(__in REFIID riid, __out void **ppFactory)
+  {
+    RestoreInlineHookBytes(s_cf1Func, s_cf1Orig);
+    typedef HRESULT(WINAPI *PFN_CDXGI1)(REFIID, void **);
+    HRESULT ret = ((PFN_CDXGI1)s_cf1Func)(riid, ppFactory);
+    if(SUCCEEDED(ret))
+      RefCountDXGIObject::HandleWrap("CreateDXGIFactory1", riid, ppFactory);
+    PatchInlineHookBytes(s_cf1Func, (void *)&CreateDXGIFactory1_inline_hook);
+    return ret;
+  }
+
+  static HRESULT WINAPI CreateDXGIFactory2_inline_hook(
+      __in UINT Flags, __in REFIID riid, __out void **ppFactory)
+  {
+    RestoreInlineHookBytes(s_cf2Func, s_cf2Orig);
+    typedef HRESULT(WINAPI *PFN_CDXGI2)(UINT, REFIID, void **);
+    HRESULT ret = ((PFN_CDXGI2)s_cf2Func)(Flags, riid, ppFactory);
+    if(SUCCEEDED(ret))
+      RefCountDXGIObject::HandleWrap("CreateDXGIFactory2", riid, ppFactory);
+    PatchInlineHookBytes(s_cf2Func, (void *)&CreateDXGIFactory2_inline_hook);
+    return ret;
   }
 
 private:
   static DXGIHook dxgihooks;
 
-  RenderDocAnalysis m_RenderDocAnalysis;
+  RenderTestAnalysis m_RenderTestAnalysis;
   DummyDXGIInfoQueue m_DummyInfoQueue;
 
   HookedFunction<PFN_CREATE_DXGI_FACTORY> CreateDXGIFactory;
@@ -272,6 +337,27 @@ private:
 
   static HRESULT WINAPI CreateDXGIFactory_hook(__in REFIID riid, __out void **ppFactory)
   {
+    Heartbeat("CreateDXGIFactory hook");
+    // d3d12 inline hooking DISABLED for now: patching d3d12.dll triggers the
+    // game's anti-cheat periodic code-integrity scan, which freezes the game
+    // for many seconds at a time. Disable via file switch
+    // (nikki\nikkiproxy_disable_inline.txt) or rebuild without the call.
+    bool disableInline =
+        (GetFileAttributesA("D:\\git\\renderdoc-nikki\\nikki\\nikkiproxy_disable_inline.txt") !=
+         INVALID_FILE_ATTRIBUTES);
+    extern void InstallD3D12InlineHooks();
+    if(!disableInline && GetModuleHandleA("d3d12.dll"))
+      InstallD3D12InlineHooks();
+
+    {
+      FILE *f = NULL;
+      fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_dxgi_factory.txt", "a");
+      if(f)
+      {
+        fprintf(f, "CreateDXGIFactory hook called in pid %d\n", (int)GetCurrentProcessId());
+        fclose(f);
+      }
+    }
     if(ppFactory)
       *ppFactory = NULL;
     HRESULT ret = dxgihooks.CreateDXGIFactory()(riid, ppFactory);
@@ -313,15 +399,15 @@ private:
 
     if(riid == __uuidof(IDXGraphicsAnalysis))
     {
-      dxgihooks.m_RenderDocAnalysis.AddRef();
+      dxgihooks.m_RenderTestAnalysis.AddRef();
       if(ppDebug)
-        *ppDebug = &dxgihooks.m_RenderDocAnalysis;
+        *ppDebug = &dxgihooks.m_RenderTestAnalysis;
       return S_OK;
     }
     if(riid == __uuidof(IDXGIInfoQueue))
     {
       RDCWARN(
-          "Returning a dummy IDXGIInfoQueue that does nothing. RenderDoc takes control of the "
+          "Returning a dummy IDXGIInfoQueue that does nothing. RenderTest takes control of the "
           "debug layer.");
       dxgihooks.m_DummyInfoQueue.AddRef();
       if(ppDebug)
@@ -344,15 +430,15 @@ private:
 
     if(riid == __uuidof(IDXGraphicsAnalysis))
     {
-      dxgihooks.m_RenderDocAnalysis.AddRef();
+      dxgihooks.m_RenderTestAnalysis.AddRef();
       if(ppDebug)
-        *ppDebug = &dxgihooks.m_RenderDocAnalysis;
+        *ppDebug = &dxgihooks.m_RenderTestAnalysis;
       return S_OK;
     }
     if(riid == __uuidof(IDXGIInfoQueue))
     {
       RDCWARN(
-          "Returning a dummy IDXGIInfoQueue that does nothing. RenderDoc takes control of the "
+          "Returning a dummy IDXGIInfoQueue that does nothing. RenderTest takes control of the "
           "debug layer.");
       dxgihooks.m_DummyInfoQueue.AddRef();
       if(ppDebug)
@@ -370,3 +456,57 @@ private:
 };
 
 DXGIHook DXGIHook::dxgihooks;
+
+void *DXGIHook::s_cfFunc = NULL;
+uint8_t DXGIHook::s_cfOrig[12];
+void *DXGIHook::s_cf1Func = NULL;
+uint8_t DXGIHook::s_cf1Orig[12];
+void *DXGIHook::s_cf2Func = NULL;
+uint8_t DXGIHook::s_cf2Orig[12];
+
+// exported so the core can install the DXGI factory inline hooks very early
+// (from DllMain), before the game creates its factory.
+extern "C" void InstallDXGIFactoryInlineHooks()
+{
+  static bool installed = false;
+  if(installed)
+    return;
+
+  // dxgi.dll may not be loaded yet (the game delay-loads it); if so, retry
+  // on the next call instead of giving up permanently.
+  if(!GetModuleHandleA("dxgi.dll"))
+    return;
+
+  installed = true;
+
+  HMODULE dxgi = GetModuleHandleA("dxgi.dll");
+  DXGIHook::s_cfFunc = (void *)GetProcAddress(dxgi, "CreateDXGIFactory");
+  DXGIHook::s_cf1Func = (void *)GetProcAddress(dxgi, "CreateDXGIFactory1");
+  DXGIHook::s_cf2Func = (void *)GetProcAddress(dxgi, "CreateDXGIFactory2");
+  if(DXGIHook::s_cfFunc)
+  {
+    SaveInlineHookBytes(DXGIHook::s_cfFunc, DXGIHook::s_cfOrig);
+    PatchInlineHookBytes(DXGIHook::s_cfFunc, (void *)&DXGIHook::CreateDXGIFactory_inline_hook);
+  }
+  if(DXGIHook::s_cf1Func)
+  {
+    SaveInlineHookBytes(DXGIHook::s_cf1Func, DXGIHook::s_cf1Orig);
+    PatchInlineHookBytes(DXGIHook::s_cf1Func, (void *)&DXGIHook::CreateDXGIFactory1_inline_hook);
+  }
+  if(DXGIHook::s_cf2Func)
+  {
+    SaveInlineHookBytes(DXGIHook::s_cf2Func, DXGIHook::s_cf2Orig);
+    PatchInlineHookBytes(DXGIHook::s_cf2Func, (void *)&DXGIHook::CreateDXGIFactory2_inline_hook);
+  }
+  {
+    FILE *f = NULL;
+    fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_inlinehook.txt", "a");
+    if(f)
+    {
+      fprintf(f, "dxgi inline hooks installed in pid %d (cf=%d cf1=%d cf2=%d)\n",
+              (int)GetCurrentProcessId(), DXGIHook::s_cfFunc != NULL, DXGIHook::s_cf1Func != NULL,
+              DXGIHook::s_cf2Func != NULL);
+      fclose(f);
+    }
+  }
+}

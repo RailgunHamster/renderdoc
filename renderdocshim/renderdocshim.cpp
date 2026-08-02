@@ -26,12 +26,12 @@
 // so that when inserted into an application it has as small an overhead/impact
 // as possible. Ideally it would be present only to be a pass-through hook and
 // the first time only to allocate a little, check if this process should be hooked
-// and load the renderdoc dll.
+// and load the RenderTest dll.
 //
 // The no-CRT restriction causes some awkward bits and pieces but the dll is simple
 // enough that it's not a big issue.
 
-#include "renderdocshim.h"
+#include "RenderTestshim.h"
 #include <windows.h>
 
 struct CaptureOptions;
@@ -61,7 +61,7 @@ void CheckHook()
 
   if(datahandle == NULL)
   {
-    LOGPRINT(L"renderdocshim: can't open global data\n");
+    LOGPRINT(L"RenderTestshim: can't open global data\n");
     return;
   }
 
@@ -70,14 +70,14 @@ void CheckHook()
   if(data == NULL)
   {
     CloseHandle(datahandle);
-    LOGPRINT(L"renderdocshim: can't map global data\n");
+    LOGPRINT(L"RenderTestshim: can't map global data\n");
     return;
   }
 
   if(data->pathmatchstring[0] == 0 || data->pathmatchstring[1] == 0 ||
      data->pathmatchstring[2] == 0 || data->pathmatchstring[3] == 0)
   {
-    LOGPRINT(L"renderdocshim: invalid pathmatchstring: '");
+    LOGPRINT(L"RenderTestshim: invalid pathmatchstring: '");
     LOGPRINT(data->pathmatchstring);
     LOGPRINT(L"'\n");
 
@@ -104,7 +104,7 @@ void CheckHook()
 
     if(find >= 0)
     {
-      LOGPRINT(L"renderdocshim: Hooking into '");
+      LOGPRINT(L"RenderTestshim: Hooking into '");
       LOGPRINT(exepath);
       LOGPRINT(L"', based on '");
       LOGPRINT(data->pathmatchstring);
@@ -133,7 +133,7 @@ void CheckHook()
     }
     else
     {
-      LOGPRINT(L"renderdocshim: NOT Hooking into '");
+      LOGPRINT(L"RenderTestshim: NOT Hooking into '");
       LOGPRINT(exepath);
       LOGPRINT(L"', based on '");
       LOGPRINT(data->pathmatchstring);
@@ -144,7 +144,7 @@ void CheckHook()
   }
   else
   {
-    LOGPRINT(L"renderdocshim: Failed to allocate exepath\n");
+    LOGPRINT(L"RenderTestshim: Failed to allocate exepath\n");
   }
 
   UnmapViewOfFile(data);

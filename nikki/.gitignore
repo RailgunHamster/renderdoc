@@ -1,0 +1,26 @@
+# build artifacts / large binaries
+*.dll
+*.obj
+*.lib
+*.exp
+*.exe
+*.pdb
+*.ipdb
+*.iobj
+*.log
+*.bak
+*.png
+*.dmp
+
+# runtime markers / switches
+marker_*.txt
+heartbeat.txt
+crash_log.txt
+nikkiproxy_*.txt
+
+# capture output
+captures/
+dumps/
+test/
+proxy/
+tools/

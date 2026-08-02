@@ -85,7 +85,7 @@ void CacheSearchDirDebugPaths(rdcstr dir)
 
 void CacheSearchDirDebugPaths()
 {
-  if(!RenderDoc::Inst().IsReplayApp())
+  if(!RenderTest::Inst().IsReplayApp())
     return;
 
   SCOPED_LOCK(cachedDebugFilesLookupLock);
@@ -378,16 +378,16 @@ struct PRIVHeader
   uint32_t chunkLength;    // length of this chunk
 
   GUID debugInfoGUID;    // GUID/magic number, since PRIV data could be used for something else.
-                         // Set to the value of RENDERDOC_ShaderDebugMagicValue from
+                         // Set to the value of RENDERTEST_ShaderDebugMagicValue from
                          // renderdoc_app.h which can also be used as a GUID to set the path
                          // at runtime via SetPrivateData (see documentation)
 
-  static const GUID RENDERDOC_ShaderDebugMagicValue;
+  static const GUID RENDERTEST_ShaderDebugMagicValue;
 
   void *data;
 };
 
-const GUID PRIVHeader::RENDERDOC_ShaderDebugMagicValue = RENDERDOC_ShaderDebugMagicValue_struct;
+const GUID PRIVHeader::RENDERTEST_ShaderDebugMagicValue = RENDERTEST_ShaderDebugMagicValue_struct;
 
 struct SIGNElement
 {
@@ -1449,7 +1449,7 @@ rdcstr DXBCContainer::GetDebugBinaryPath(const void *ByteCode, size_t ByteCodeLe
 
   uint32_t *chunkOffsets = (uint32_t *)(header + 1);    // right after the header
 
-  // prefer RenderDoc's magic value which pre-dated D3D's support
+  // prefer RenderTest's magic value which pre-dated D3D's support
   for(uint32_t chunkIdx = 0; chunkIdx < header->numChunks; chunkIdx++)
   {
     uint32_t *fourcc = (uint32_t *)(data + chunkOffsets[chunkIdx]);
@@ -1457,7 +1457,7 @@ rdcstr DXBCContainer::GetDebugBinaryPath(const void *ByteCode, size_t ByteCodeLe
     if(*fourcc == FOURCC_PRIV)
     {
       PRIVHeader *privHeader = (PRIVHeader *)fourcc;
-      if(privHeader->debugInfoGUID == PRIVHeader::RENDERDOC_ShaderDebugMagicValue)
+      if(privHeader->debugInfoGUID == PRIVHeader::RENDERTEST_ShaderDebugMagicValue)
       {
         const char *pathData = (char *)&privHeader->data;
         size_t pathLength = strnlen(pathData, privHeader->chunkLength);
@@ -1515,7 +1515,7 @@ void DXBCContainer::TryFetchSeparateDebugInfo(bytebuf &byteCode, const rdcstr &d
     {
       bool lz4 = false;
 
-      // RenderDoc extension to allow lz4 compression
+      // RenderTest extension to allow lz4 compression
       if(!strncmp(originalPath.c_str(), "lz4#", 4))
       {
         originalPath = originalPath.substr(4);
@@ -1693,7 +1693,7 @@ void DXBCContainer::TryFetchSeparateDebugInfo(bytebuf &byteCode, const rdcstr &d
       // Try to retrieve debug file from the externally referenced files in the capture
       if(found.empty())
       {
-        if(RenderDoc::Inst().GetTrackedFileData(nickname, found.contents))
+        if(RenderTest::Inst().GetTrackedFileData(nickname, found.contents))
         {
           loadingLog += StringFormat::Fmt(
               "\nFound debug data from files embedded in the capture using nickname '%s'\n",
@@ -1723,7 +1723,7 @@ void DXBCContainer::TryFetchSeparateDebugInfo(bytebuf &byteCode, const rdcstr &d
         return;
       }
 
-      RenderDoc::Inst().AddTrackedFileReference(nickname, found.path);
+      RenderTest::Inst().AddTrackedFileReference(nickname, found.path);
 
       if(found.pdb)
       {
@@ -1759,7 +1759,7 @@ DXBCContainer::DXBCContainer(const bytebuf &ByteCode, const rdcstr &debugInfoPat
 
   m_ShaderBlob = ByteCode;
 
-  if(RenderDoc::Inst().IsReplayApp())
+  if(RenderTest::Inst().IsReplayApp())
     TryFetchSeparateDebugInfo(m_ShaderBlob, debugInfoPath);
 
   // just for convenience

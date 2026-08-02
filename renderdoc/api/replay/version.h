@@ -28,7 +28,7 @@
 //
 // Build configuration variables.
 //
-// When distributing RenderDoc builds please check these variables before building and
+// When distributing RenderTest builds please check these variables before building and
 // set them appropriately. If you're building locally, the defaults are all fine.
 //
 // For windows builds, some of these variables are irrelevant and can be ignored.
@@ -45,8 +45,8 @@
 // It's 41 characters to allow 40 characters of commit hash plus trailing NULL.
 // Then version.cpp is the only thing that needs to be rebuilt when the git commit changes
 //
-// Only available internally, external users should use RENDERDOC_GetCommitHash()
-#if defined(RENDERDOC_EXPORTS)
+// Only available internally, external users should use RENDERTEST_GetCommitHash()
+#if defined(RENDERTEST_EXPORTS)
 extern "C" const char GitVersionHash[41];
 #endif
 
@@ -54,8 +54,8 @@ extern "C" const char GitVersionHash[41];
 // version number upstream, possibly with some patches applied as necessary.
 // Any other build whether it's including experimental local changes or just from the tip of the
 // latest code at some other point should be considered unstable and leave this as 0.
-#if !defined(RENDERDOC_STABLE_BUILD)
-#define RENDERDOC_STABLE_BUILD 0
+#if !defined(RENDERTEST_STABLE_BUILD)
+#define RENDERTEST_STABLE_BUILD 0
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -79,7 +79,7 @@ extern "C" const char GitVersionHash[41];
 // If you're distributing builds for the public then do update this to point to your bugtracker or
 // similar.
 #if !defined(DISTRIBUTION_CONTACT)
-// #define DISTRIBUTION_CONTACT "https://distribution.example/packages/renderdoc"
+// #define DISTRIBUTION_CONTACT "https://distribution.example/packages/RenderTest"
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -88,21 +88,21 @@ extern "C" const char GitVersionHash[41];
 
 // You should NOT enable this variable. This is used by upstream builds to determine whether
 // this is an official build e.g. that should send crash reports.
-#define RENDERDOC_OFFICIAL_BUILD 0
+#define RENDERTEST_OFFICIAL_BUILD 0
 
 // The major and minor version that describe this build. These numbers are modified linearly
 // upstream and should not be modified downstream. You can set DISTRIBUTION_VERSION to include any
 // arbitrary release marker or package version you wish.
-#define RENDERDOC_VERSION_MAJOR 1
-#define RENDERDOC_VERSION_MINOR 46
+#define RENDERTEST_VERSION_MAJOR 1
+#define RENDERTEST_VERSION_MINOR 46
 
 #define RDOC_INTERNAL_VERSION_STRINGIZE2(a) #a
 #define RDOC_INTERNAL_VERSION_STRINGIZE(a) RDOC_INTERNAL_VERSION_STRINGIZE2(a)
 
 // string that's just "major.minor"
 #define MAJOR_MINOR_VERSION_STRING                         \
-  RDOC_INTERNAL_VERSION_STRINGIZE(RENDERDOC_VERSION_MAJOR) \
-  "." RDOC_INTERNAL_VERSION_STRINGIZE(RENDERDOC_VERSION_MINOR)
+  RDOC_INTERNAL_VERSION_STRINGIZE(RENDERTEST_VERSION_MAJOR) \
+  "." RDOC_INTERNAL_VERSION_STRINGIZE(RENDERTEST_VERSION_MINOR)
 
 // string that's the actual version number, either from the distribution or just vX.Y
 #if defined(DISTRIBUTION_VERSION)

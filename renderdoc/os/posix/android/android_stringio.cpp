@@ -32,7 +32,7 @@
 #include "common/formatting.h"
 #include "os/os_specific.h"
 
-#define LOGCAT_TAG "renderdoc"
+#define LOGCAT_TAG "RenderTest"
 
 namespace Keyboard
 {
@@ -90,7 +90,7 @@ rdcstr FindFileInPath(const rdcstr &fileName)
   return fileName;
 }
 
-// For RenderDoc's apk, this returns our package name
+// For RenderTest's apk, this returns our package name
 // For other APKs, we use it to get the writable temp directory.
 void GetExecutableFilename(rdcstr &selfName)
 {
@@ -119,7 +119,7 @@ void GetLibraryFilename(rdcstr &selfName)
   // this is a hack, but the only reliable way to find the absolute path to the library.
   // dladdr would be fine but it returns the wrong result for symbols in the library
 
-  rdcstr librenderdoc_path;
+  rdcstr libRENDERTEST_path;
 
   FILE *f = fopen("/proc/self/maps", FileIO::ReadText);
 
@@ -134,7 +134,7 @@ void GetLibraryFilename(rdcstr &selfName)
 
     ::fclose(f);
 
-    char *c = strstr(map_string, "/" RENDERDOC_ANDROID_LIBRARY);
+    char *c = strstr(map_string, "/" RENDERTEST_ANDROID_LIBRARY);
 
     if(c)
     {
@@ -194,23 +194,23 @@ void GetLibraryFilename(rdcstr &selfName)
       char *end = strchr(c, '\n');
 
       if(end)
-        librenderdoc_path = rdcstr(c, end - c);
+        libRENDERTEST_path = rdcstr(c, end - c);
     }
 
     delete[] map_string;
   }
 
-  if(librenderdoc_path.empty())
+  if(libRENDERTEST_path.empty())
   {
-    RDCWARN("Couldn't get " RENDERDOC_ANDROID_LIBRARY
+    RDCWARN("Couldn't get " RENDERTEST_ANDROID_LIBRARY
             " path from /proc/self/maps, falling back to dladdr");
 
     Dl_info info;
     if(dladdr(&LibraryLocator, &info))
-      librenderdoc_path = info.dli_fname;
+      libRENDERTEST_path = info.dli_fname;
   }
 
-  selfName = librenderdoc_path;
+  selfName = libRENDERTEST_path;
 }
 };
 

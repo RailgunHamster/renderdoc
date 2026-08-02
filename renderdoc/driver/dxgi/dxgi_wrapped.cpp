@@ -237,8 +237,20 @@ WrappedIDXGISwapChain4::WrappedIDXGISwapChain4(IDXGISwapChain *real, HWND w, ID3
   {
     Keyboard::AddInputWindow(WindowingSystem::Win32, wnd);
 
-    RenderDoc::Inst().AddFrameCapturer(DeviceOwnedWindow(m_pDevice->GetFrameCapturerDevice(), wnd),
+    RenderTest::Inst().AddFrameCapturer(DeviceOwnedWindow(m_pDevice->GetFrameCapturerDevice(), wnd),
                                        m_pDevice->GetFrameCapturer());
+
+    {
+      FILE *f = NULL;
+      fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_capture.txt", "a");
+      if(f)
+      {
+        fprintf(f, "pid %d swapchain AddFrameCapturer dev=%p hwnd=%p\n",
+                (int)GetCurrentProcessId(), (void *)m_pDevice->GetFrameCapturerDevice(),
+                (void *)wnd);
+        fclose(f);
+      }
+    }
   }
 
   // we do a 'fake' present right at the start, so that we can capture frame 1, by
@@ -254,7 +266,7 @@ WrappedIDXGISwapChain4::~WrappedIDXGISwapChain4()
   {
     Keyboard::RemoveInputWindow(WindowingSystem::Win32, wnd);
 
-    RenderDoc::Inst().RemoveFrameCapturer(DeviceOwnedWindow(m_pDevice->GetFrameCapturerDevice(), wnd));
+    RenderTest::Inst().RemoveFrameCapturer(DeviceOwnedWindow(m_pDevice->GetFrameCapturerDevice(), wnd));
   }
 
   m_pDevice->ReleaseSwapchainResources(this, 0, NULL, NULL);
@@ -428,7 +440,7 @@ HRESULT WrappedIDXGISwapChain4::SetFullscreenState(
   WrappedIDXGIOutput6 *wrappedOutput = (WrappedIDXGIOutput6 *)pTarget;
   IDXGIOutput *unwrappedOutput = wrappedOutput ? wrappedOutput->GetReal() : NULL;
 
-  if(RenderDoc::Inst().GetCaptureOptions().allowFullscreen)
+  if(RenderTest::Inst().GetCaptureOptions().allowFullscreen)
     return m_pReal->SetFullscreenState(Fullscreen, unwrappedOutput);
 
   return S_OK;
@@ -550,7 +562,7 @@ HRESULT WrappedIDXGISwapChain4::Present(
     /* [in] */ UINT SyncInterval,
     /* [in] */ UINT Flags)
 {
-  if(!RenderDoc::Inst().GetCaptureOptions().allowVSync)
+  if(!RenderTest::Inst().GetCaptureOptions().allowVSync)
   {
     SyncInterval = 0;
   }
@@ -567,7 +579,7 @@ HRESULT WrappedIDXGISwapChain4::Present(
 HRESULT WrappedIDXGISwapChain4::Present1(UINT SyncInterval, UINT Flags,
                                          const DXGI_PRESENT_PARAMETERS *pPresentParameters)
 {
-  if(!RenderDoc::Inst().GetCaptureOptions().allowVSync)
+  if(!RenderTest::Inst().GetCaptureOptions().allowVSync)
   {
     SyncInterval = 0;
   }
@@ -1231,7 +1243,29 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGIFactory::QueryInterface(REFIID riid, void 
 HRESULT WrappedIDXGIFactory::CreateSwapChain(IUnknown *pDevice, DXGI_SWAP_CHAIN_DESC *pDesc,
                                              IDXGISwapChain **ppSwapChain)
 {
+  {
+    FILE *f = NULL;
+    fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_swapchain.txt", "a");
+    if(f)
+    {
+      fprintf(f, "pid %d CreateSwapChain called, device=%p\n", (int)GetCurrentProcessId(),
+              (void *)pDevice);
+      fclose(f);
+    }
+  }
+
   ID3DDevice *wrapDevice = GetD3DDevice(pDevice);
+
+  {
+    FILE *f = NULL;
+    fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_swapchain.txt", "a");
+    if(f)
+    {
+      fprintf(f, "CreateSwapChain: pDevice=%p wrapDevice=%p\n", (void *)pDevice,
+              (void *)wrapDevice);
+      fclose(f);
+    }
+  }
 
   if(wrapDevice)
   {
@@ -1246,7 +1280,7 @@ HRESULT WrappedIDXGIFactory::CreateSwapChain(IUnknown *pDevice, DXGI_SWAP_CHAIN_
 
     local.BufferUsage |= DXGI_USAGE_RENDER_TARGET_OUTPUT;
 
-    if(!RenderDoc::Inst().GetCaptureOptions().allowFullscreen)
+    if(!RenderTest::Inst().GetCaptureOptions().allowFullscreen)
       local.Windowed = TRUE;
 
     HRESULT ret = m_pReal->CreateSwapChain(wrapDevice->GetRealIUnknown(), desc, ppSwapChain);
@@ -1270,6 +1304,16 @@ HRESULT WrappedIDXGIFactory::CreateSwapChainForHwnd(
     const DXGI_SWAP_CHAIN_FULLSCREEN_DESC *pFullscreenDesc, IDXGIOutput *pRestrictToOutput,
     IDXGISwapChain1 **ppSwapChain)
 {
+  {
+    FILE *f = NULL;
+    fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_swapchain.txt", "a");
+    if(f)
+    {
+      fprintf(f, "pid %d CreateSwapChainForHwnd called, device=%p\n", (int)GetCurrentProcessId(),
+              (void *)pDevice);
+      fclose(f);
+    }
+  }
   ID3DDevice *wrapDevice = GetD3DDevice(pDevice);
 
   WrappedIDXGIOutput6 *wrappedOutput = (WrappedIDXGIOutput6 *)pRestrictToOutput;
@@ -1288,7 +1332,7 @@ HRESULT WrappedIDXGIFactory::CreateSwapChainForHwnd(
 
     local.BufferUsage |= DXGI_USAGE_RENDER_TARGET_OUTPUT;
 
-    if(!RenderDoc::Inst().GetCaptureOptions().allowFullscreen && pFullscreenDesc)
+    if(!RenderTest::Inst().GetCaptureOptions().allowFullscreen && pFullscreenDesc)
     {
       pFullscreenDesc = NULL;
     }
@@ -1322,7 +1366,7 @@ HRESULT WrappedIDXGIFactory::CreateSwapChainForCoreWindow(IUnknown *pDevice, IUn
   WrappedIDXGIOutput6 *wrappedOutput = (WrappedIDXGIOutput6 *)pRestrictToOutput;
   IDXGIOutput *unwrappedOutput = wrappedOutput ? wrappedOutput->GetReal() : NULL;
 
-  if(!RenderDoc::Inst().GetCaptureOptions().allowFullscreen)
+  if(!RenderTest::Inst().GetCaptureOptions().allowFullscreen)
   {
     RDCWARN("Impossible to disallow fullscreen on call to CreateSwapChainForCoreWindow");
   }
@@ -1373,7 +1417,7 @@ HRESULT WrappedIDXGIFactory::CreateSwapChainForComposition(IUnknown *pDevice,
   WrappedIDXGIOutput6 *wrappedOutput = (WrappedIDXGIOutput6 *)pRestrictToOutput;
   IDXGIOutput *unwrappedOutput = wrappedOutput ? wrappedOutput->GetReal() : NULL;
 
-  if(!RenderDoc::Inst().GetCaptureOptions().allowFullscreen)
+  if(!RenderTest::Inst().GetCaptureOptions().allowFullscreen)
   {
     RDCWARN("Impossible to disallow fullscreen on call to CreateSwapChainForComposition");
   }

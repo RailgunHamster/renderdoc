@@ -1,0 +1,23 @@
+
+  renderdoc_dxil.vcxproj -> D:\git\renderdoc-nikki\x64\Release\driver_dxil.lib
+  renderdoc_dxbc.vcxproj -> D:\git\renderdoc-nikki\x64\Release\driver_dxbc.lib
+  Intel.vcxproj -> D:\git\renderdoc-nikki\x64\Release\driver_Intel.lib
+  ARM.vcxproj -> D:\git\renderdoc-nikki\x64\Release\driver_ARM.lib
+  renderdoc_dxgi.vcxproj -> D:\git\renderdoc-nikki\x64\Release\driver_dxgi.lib
+  Read Git commit: '4e59f62a96f2b571ba830cd1ccfc2b5c5cd7ae48'
+  renderdoc_spirv.vcxproj -> D:\git\renderdoc-nikki\x64\Release\driver_spirv.lib
+  renderdoc_d3d12.vcxproj -> D:\git\renderdoc-nikki\x64\Release\driver_d3d12.lib
+  AMD.vcxproj -> D:\git\renderdoc-nikki\x64\Release\driver_AMD.lib
+  renderdoc_version.vcxproj -> D:\git\renderdoc-nikki\x64\Release\version.lib
+  NV.vcxproj -> D:\git\renderdoc-nikki\x64\Release\driver_NV.lib
+  renderdoc_vulkan.vcxproj -> D:\git\renderdoc-nikki\x64\Release\driver_vulkan.lib
+  renderdoc_gl.vcxproj -> D:\git\renderdoc-nikki\x64\Release\driver_gl.lib
+  renderdoc_d3d11.vcxproj -> D:\git\renderdoc-nikki\x64\Release\driver_d3d11.lib
+  Processing layer JSON file for RenderTest 1.46
+    正在创建库 D:\git\renderdoc-nikki\x64\Release\rendertest.lib 和对象 D:\git\renderdoc-nikki\x64\Release\rendertest.exp
+  正在生成代码
+  Previous IPDB and IOBJ mismatch, fall back to full compilation.
+D:\git\renderdoc-nikki\renderdoc\os\win32\win32_libentry.cpp(247): error C2220: 以下警告被视为错误 [D:\git\renderdoc-nikki\renderdoc\renderdoc.vcxproj]
+D:\git\renderdoc-nikki\renderdoc\os\win32\win32_libentry.cpp(247): warning C4702: 无法访问的代码 [D:\git\renderdoc-nikki\renderdoc\renderdoc.vcxproj]
+  All 127322 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
+LINK : fatal error LNK1257: 代码生成失败 [D:\git\renderdoc-nikki\renderdoc\renderdoc.vcxproj]

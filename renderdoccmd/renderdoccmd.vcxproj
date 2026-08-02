@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Development|Win32">
@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{D03DF2F9-513C-4084-BBDD-1DEE8D9250D7}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>renderdoccmd</RootNamespace>
-    <ProjectName>renderdoccmd</ProjectName>
+    <RootNamespace>RenderTestcmd</RootNamespace>
+    <ProjectName>rendertestcmd</ProjectName>
   </PropertyGroup>
   <Import Project="$(SolutionDir)\util\WindowsSDKTarget.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -68,6 +68,9 @@
   <PropertyGroup>
     <IntDir>$(SolutionDir)$(Platform)\$(Configuration)\obj\$(ProjectName)\</IntDir>
   </PropertyGroup>
+  <PropertyGroup>
+    <TargetName>rendertestcmd</TargetName>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Development|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>$(IncludePath)</IncludePath>
@@ -98,7 +101,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_CRT_SECURE_NO_WARNINGS;RENDERDOC_PLATFORM_WIN32;NDEBUG;_CONSOLE;PYTHON_AVAILABLE=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_CRT_SECURE_NO_WARNINGS;RENDERTEST_PLATFORM_WIN32;NDEBUG;_CONSOLE;PYTHON_AVAILABLE=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)renderdocshim\;$(SolutionDir)renderdoc\api\;$(SolutionDir)renderdoc\api\replay;$(SolutionDir)renderdoccmd\3rdparty\;$(SolutionDir)renderdoc\3rdparty\</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <TreatWarningAsError>true</TreatWarningAsError>
@@ -120,7 +123,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_CRT_SECURE_NO_WARNINGS;WIN64;RENDERDOC_PLATFORM_WIN32;NDEBUG;_CONSOLE;PYTHON_AVAILABLE=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_CRT_SECURE_NO_WARNINGS;WIN64;RENDERTEST_PLATFORM_WIN32;NDEBUG;_CONSOLE;PYTHON_AVAILABLE=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)renderdocshim\;$(SolutionDir)renderdoc\api\;$(SolutionDir)renderdoc\api\replay;$(SolutionDir)renderdoccmd\3rdparty\;$(SolutionDir)renderdoc\3rdparty\</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <TreatWarningAsError>true</TreatWarningAsError>
@@ -143,7 +146,7 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;_CRT_SECURE_NO_WARNINGS;RENDERDOC_PLATFORM_WIN32;NDEBUG;RELEASE;_CONSOLE;PYTHON_AVAILABLE=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_CRT_SECURE_NO_WARNINGS;RENDERTEST_PLATFORM_WIN32;NDEBUG;RELEASE;_CONSOLE;PYTHON_AVAILABLE=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)renderdocshim\;$(SolutionDir)renderdoc\api\;$(SolutionDir)renderdoc\api\replay;$(SolutionDir)renderdoccmd\3rdparty\;$(SolutionDir)renderdoc\3rdparty\</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
@@ -166,7 +169,7 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;_CRT_SECURE_NO_WARNINGS;WIN64;RENDERDOC_PLATFORM_WIN32;NDEBUG;RELEASE;_CONSOLE;PYTHON_AVAILABLE=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_CRT_SECURE_NO_WARNINGS;WIN64;RENDERTEST_PLATFORM_WIN32;NDEBUG;RELEASE;_CONSOLE;PYTHON_AVAILABLE=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)renderdocshim\;$(SolutionDir)renderdoc\api\;$(SolutionDir)renderdoc\api\replay;$(SolutionDir)renderdoccmd\3rdparty\;$(SolutionDir)renderdoc\3rdparty\</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>

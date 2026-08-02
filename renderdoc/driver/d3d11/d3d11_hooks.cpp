@@ -24,6 +24,7 @@
  ******************************************************************************/
 
 #include "d3d11_hooks.h"
+#include "hooks/inline_hooks.h"
 #include "driver/dxgi/dxgi_wrapped.h"
 #include "hooks/hooks.h"
 #include "d3d11_device.h"
@@ -43,12 +44,31 @@ public:
   {
     RDCLOG("Registering D3D11 hooks");
 
+    // debug marker: confirm hook registration in the target process
+    {
+      FILE *f = NULL;
+      fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_d3d11_register.txt", "a");
+      if(f)
+      {
+        fprintf(f, "d3d11 hooks registered in pid %d t=%llu\n", (int)GetCurrentProcessId(), (unsigned long long)GetTickCount64());
+        fclose(f);
+      }
+    }
+
     WrappedIDXGISwapChain4::RegisterD3DDeviceCallback(GetD3D11DeviceIfAlloc);
 
     // also require d3dcompiler_??.dll
     if(GetD3DCompiler() == NULL)
     {
       RDCERR("Failed to load d3dcompiler_??.dll - not inserting D3D11 hooks.");
+      return;
+    }
+
+    // Bisection switch: disable all d3d11 hooks (file marker)
+    if(GetFileAttributesA("D:\\git\\renderdoc-nikki\\nikki\\nikkiproxy_disable_d3d11_hooks.txt") !=
+       INVALID_FILE_ATTRIBUTES)
+    {
+      RDCLOG("D3D11 hooks disabled by file switch");
       return;
     }
 
@@ -60,6 +80,40 @@ public:
 
     m_RecurseSlot = Threading::AllocateTLSSlot();
     Threading::SetTLSValue(m_RecurseSlot, NULL);
+  }
+
+  // Fallback for processes that bypass GetProcAddress/IAT hooking: patch the
+  // d3d11.dll export entries directly. Must be called after d3d11.dll is loaded.
+  static void InstallInlineHooksStatic() { d3d11hooks.InstallInlineHooks(); }
+
+  void InstallInlineHooks()
+  {
+    static bool installed = false;
+    if(installed)
+      return;
+    installed = true;
+
+    HMODULE d3d11 = GetModuleHandleA("d3d11.dll");
+    if(d3d11 == NULL)
+    {
+      installed = false;
+      return;
+    }
+
+    void *createDev = (void *)GetProcAddress(d3d11, "D3D11CreateDevice");
+    void *createDevSC = (void *)GetProcAddress(d3d11, "D3D11CreateDeviceAndSwapChain");
+    if(createDev)
+    {
+      void *tramp = InstallInlineHook(createDev, (void *)&D3D11CreateDevice_hook);
+      if(tramp)
+        CreateDevice.SetFuncPtr(tramp);
+    }
+    if(createDevSC)
+    {
+      void *tramp = InstallInlineHook(createDevSC, (void *)&D3D11CreateDeviceAndSwapChain_hook);
+      if(tramp)
+        CreateDeviceAndSwapChain.SetFuncPtr(tramp);
+    }
   }
 
 private:
@@ -113,9 +167,9 @@ private:
     RDCDEBUG("Call to Create_Internal Flags %x", Flags);
 
     // we should no longer go through here in the replay application
-    RDCASSERT(!RenderDoc::Inst().IsReplayApp());
+    RDCASSERT(!RenderTest::Inst().IsReplayApp());
 
-    if(RenderDoc::Inst().GetCaptureOptions().apiValidation)
+    if(RenderTest::Inst().GetCaptureOptions().apiValidation)
       Flags |= D3D11_CREATE_DEVICE_DEBUG;
     else
       Flags &= ~D3D11_CREATE_DEVICE_DEBUG;
@@ -129,7 +183,7 @@ private:
       pUsedSwapDesc = &swapDesc;
     }
 
-    if(pUsedSwapDesc && !RenderDoc::Inst().GetCaptureOptions().allowFullscreen)
+    if(pUsedSwapDesc && !RenderTest::Inst().GetCaptureOptions().allowFullscreen)
     {
       pUsedSwapDesc->Windowed = TRUE;
     }
@@ -209,6 +263,15 @@ private:
       UINT SDKVersion, __out_opt ID3D11Device **ppDevice,
       __out_opt D3D_FEATURE_LEVEL *pFeatureLevel, __out_opt ID3D11DeviceContext **ppImmediateContext)
   {
+    {
+      FILE *f = NULL;
+      fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_d3d11_create.txt", "a");
+      if(f)
+      {
+        fprintf(f, "D3D11CreateDevice hook called in pid %d\n", (int)GetCurrentProcessId());
+        fclose(f);
+      }
+    }
     // just forward the call with NULL swapchain parameters
     return D3D11CreateDeviceAndSwapChain_hook(pAdapter, DriverType, Software, Flags, pFeatureLevels,
                                               FeatureLevels, SDKVersion, NULL, NULL, ppDevice,
@@ -260,4 +323,10 @@ HRESULT CreateD3D11_Internal(RealD3D11CreateFunction real, __in_opt IDXGIAdapter
   return D3D11Hook::d3d11hooks.Create_Internal(
       real, pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels, SDKVersion,
       pSwapChainDesc, ppSwapChain, ppDevice, pFeatureLevel, ppImmediateContext);
+}
+
+// exported for the dxgi hooks to trigger inline hook installation once d3d11.dll is loaded
+extern void InstallD3D11InlineHooks()
+{
+  D3D11Hook::InstallInlineHooksStatic();
 }

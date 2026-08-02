@@ -23,14 +23,15 @@
  ******************************************************************************/
 
 #include "d3d12_hooks.h"
+#include <intrin.h>
 #include "driver/dxgi/dxgi_wrapped.h"
 #include "hooks/hooks.h"
+#include "hooks/inline_hooks.h"
 #include "serialise/serialiser.h"
 #include "d3d12_command_queue.h"
 #include "d3d12_device.h"
 #include "d3d12_replay.h"
 #include "d3d12_shader_cache.h"
-
 #include "driver/dx/official/D3D11On12On7.h"
 
 typedef HRESULT(WINAPI *PFN_D3D12_ENABLE_EXPERIMENTAL_FEATURES)(UINT NumFeatures, const IID *pIIDs,
@@ -442,7 +443,7 @@ public:
                                                  D3D_FEATURE_LEVEL FeatureLevel, REFIID riid,
                                                  _COM_Outptr_opt_ void **ppvDevice)
   {
-    if(RenderDoc::Inst().GetCaptureOptions().apiValidation)
+    if(RenderTest::Inst().GetCaptureOptions().apiValidation)
     {
       D3D12DevConfiguration tmpConfig = {};
       HRESULT hr = m_pReal->GetConfigurationInterface(CLSID_D3D12Debug, __uuidof(ID3D12Debug),
@@ -547,14 +548,221 @@ public:
   virtual void STDMETHODCALLTYPE FreeUnusedSDKs(void) { return m_pReal1->FreeUnusedSDKs(); }
 };
 
+// the wrapped D3D12 device, saved so the capture-trigger code can hand it to
+// StartFrameCapture (device must be non-NULL to match the d3d12 capturer).
+static IUnknown *g_wrappedDevice = NULL;
+
 class D3D12Hook : LibraryHook
 {
 public:
+  // Fallback for processes that bypass GetProcAddress/IAT hooking (e.g. bound
+  // delay-load imports): patch the d3d12.dll export entries directly.
+  // Must be called after d3d12.dll is loaded.
+  static void InstallInlineHooksStatic() { d3d12hooks.InstallInlineHooks(); }
+
+  // Original entry bytes for restore-call-repatch inline hooking (no trampoline)
+  static void *s_createDevFunc;
+  static uint8_t s_createDevOrig[12];
+  static void *s_getInterfaceFunc;
+  static uint8_t s_getInterfaceOrig[12];
+  static void *s_d3d12coreGIFunc;
+  static uint8_t s_d3d12coreGIOrig[12];
+
+  // Dummy ID3D12DeviceRemovedExtendedDataSettings2 handed to the game from the
+  // D3D12GetInterface hook. The game calls D3D12GetInterface(CLSID_DRED,
+  // IID_ID3D12DeviceRemovedExtendedDataSettings2) during init and retries
+  // forever if it fails; calling the REAL D3D12GetInterface from our hook
+  // hangs the game threads. This dummy accepts the DRED configuration calls.
+  struct DummyDREDSettings2 : public ID3D12DeviceRemovedExtendedDataSettings2
+  {
+    virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject) override
+    {
+      if(riid == __uuidof(IUnknown) ||
+         riid == __uuidof(ID3D12DeviceRemovedExtendedDataSettings) ||
+         riid == __uuidof(ID3D12DeviceRemovedExtendedDataSettings1) ||
+         riid == __uuidof(ID3D12DeviceRemovedExtendedDataSettings2))
+      {
+        *ppvObject = this;
+        AddRef();
+        return S_OK;
+      }
+      return E_NOINTERFACE;
+    }
+    virtual ULONG STDMETHODCALLTYPE AddRef() override { return 1; }
+    virtual ULONG STDMETHODCALLTYPE Release() override { return 1; }
+    virtual void STDMETHODCALLTYPE SetAutoBreadcrumbsEnablement(D3D12_DRED_ENABLEMENT) override {}
+    virtual void STDMETHODCALLTYPE SetPageFaultEnablement(D3D12_DRED_ENABLEMENT) override {}
+    virtual void STDMETHODCALLTYPE SetWatsonDumpEnablement(D3D12_DRED_ENABLEMENT) override {}
+    virtual void STDMETHODCALLTYPE SetBreadcrumbContextEnablement(D3D12_DRED_ENABLEMENT) override {}
+    virtual void STDMETHODCALLTYPE UseMarkersOnlyAutoBreadcrumbs(BOOL) override {}
+  };
+  static DummyDREDSettings2 s_dummyDREDSettings;
+
+  void InstallInlineHooks()
+  {
+    static bool installed = false;
+    if(installed)
+      return;
+    installed = true;
+
+    // Only inline-hook the SYSTEM d3d12.dll. If a proxy d3d12.dll (e.g. our
+    // game-dir proxy that calls RENDERTEST_WrapD3D12Device) is loaded instead,
+    // patching it is unsafe: the proxy is compiled C++ whose prologue can
+    // contain RIP-relative instructions that break a 12-byte trampoline copy.
+    // In that case the proxy handles device wrapping itself.
+    HMODULE d3d12 = GetModuleHandleA("d3d12.dll");
+    if(d3d12 == NULL)
+    {
+      installed = false;
+      return;
+    }
+
+    {
+      wchar_t modPath[MAX_PATH];
+      if(GetModuleFileNameW(d3d12, modPath, MAX_PATH))
+      {
+        wchar_t sysDir[MAX_PATH];
+        GetSystemDirectoryW(sysDir, MAX_PATH);
+        wchar_t sysPath[MAX_PATH];
+        wsprintfW(sysPath, L"%s\\d3d12.dll", sysDir);
+        if(_wcsicmp(modPath, sysPath) != 0)
+        {
+          // proxy d3d12.dll loaded - skip inline hooking, proxy wraps devices
+          FILE *f = NULL;
+          fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_inlinehook.txt", "a");
+          if(f)
+          {
+            fprintf(f, "d3d12.dll is a proxy (%ls) - skipping inline hook in pid %d\n", modPath,
+                    (int)GetCurrentProcessId());
+            fclose(f);
+          }
+          return;
+        }
+      }
+    }
+
+    {
+      FILE *f = NULL;
+      fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_inlinehook.txt", "a");
+      if(f)
+      {
+        fprintf(f, "InstallInlineHooks in pid %d t=%llu, d3d12=%p\n", (int)GetCurrentProcessId(),
+                (unsigned long long)GetTickCount64(), (void *)d3d12);
+        fclose(f);
+      }
+    }
+
+    // Restore-call-repatch inline hooking. We deliberately do NOT use a
+    // trampoline: trampolines allocated anywhere in the game's address space
+    // crash (the game's threads end up with an rsp adjacent to the trampoline
+    // page, so its entry prologue writes hit unmapped pages). Instead the hook
+    // restores the original bytes, calls the real function, then re-patches.
+    void *createDev = (void *)GetProcAddress(d3d12, "D3D12CreateDevice");
+    void *getInterface = (void *)GetProcAddress(d3d12, "D3D12GetInterface");
+    if(createDev)
+    {
+      s_createDevFunc = createDev;
+      SaveInlineHookBytes(createDev, s_createDevOrig);
+      PatchInlineHookBytes(createDev, (void *)&D3D12CreateDevice_hook);
+      FILE *f = NULL;
+      fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_inlinehook.txt", "a");
+      if(f)
+      {
+        fprintf(f, "  patched D3D12CreateDevice at %p (restore-call-repatch)\n", createDev);
+        fclose(f);
+      }
+    }
+    if(getInterface)
+    {
+      s_getInterfaceFunc = getInterface;
+      SaveInlineHookBytes(getInterface, s_getInterfaceOrig);
+      PatchInlineHookBytes(getInterface, (void *)&D3D12GetInterface_hook);
+    }
+    // D3D12Core.dll (Agility SDK core) also exports D3D12GetInterface
+    HMODULE d3d12core = GetModuleHandleA("D3D12Core.dll");
+    if(d3d12core)
+    {
+      wchar_t modPath[MAX_PATH];
+      bool isSystemCore = false;
+      if(GetModuleFileNameW(d3d12core, modPath, MAX_PATH))
+      {
+        wchar_t sysDir[MAX_PATH];
+        GetSystemDirectoryW(sysDir, MAX_PATH);
+        wchar_t sysPath[MAX_PATH];
+        wsprintfW(sysPath, L"%s\\D3D12Core.dll", sysDir);
+        isSystemCore = (_wcsicmp(modPath, sysPath) == 0);
+      }
+      if(isSystemCore)
+      {
+        void *coreGI = (void *)GetProcAddress(d3d12core, "D3D12GetInterface");
+        if(coreGI)
+        {
+          s_d3d12coreGIFunc = coreGI;
+          SaveInlineHookBytes(coreGI, s_d3d12coreGIOrig);
+          PatchInlineHookBytes(coreGI, (void *)&D3D12GetInterface_hook);
+        }
+      }
+    }
+  }
+
   void RegisterHooks()
   {
     RDCLOG("Registering D3D12 hooks");
 
+    // debug marker: confirm hook registration in the target process
+    {
+      FILE *f = NULL;
+      fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_d3d12_register.txt", "a");
+      if(f)
+      {
+        fprintf(f, "d3d12 hooks registered in pid %d t=%llu\n", (int)GetCurrentProcessId(),
+                (unsigned long long)GetTickCount64());
+        fclose(f);
+      }
+    }
+
+    // poll for d3d12.dll load and install inline hooks immediately, so that
+    // bound-import resolution picks up our hooks instead of the real functions.
+    // Disabled by file switch for bisection: D:\git\renderdoc-nikki\nikki\nikkiproxy_disable_inline.txt
+    bool disableInline =
+        (GetFileAttributesA("D:\\git\\renderdoc-nikki\\nikki\\nikkiproxy_disable_inline.txt") != INVALID_FILE_ATTRIBUTES);
+    static bool pollStarted = false;
+    if(!pollStarted && !disableInline)
+    {
+      pollStarted = true;
+      CreateThread(
+          NULL, 0,
+          [](LPVOID) -> DWORD {
+            for(;;)
+            {
+              if(GetModuleHandleA("d3d12.dll"))
+              {
+                d3d12hooks.InstallInlineHooks();
+                break;
+              }
+              Sleep(5);
+            }
+            return 0;
+          },
+          NULL, 0, NULL);
+    }
+
     WrappedIDXGISwapChain4::RegisterD3DDeviceCallback(GetD3D12DeviceIfAlloc);
+
+    // Bisection switch: only CreateDevice+GetInterface (file marker)
+    bool onlyCreateGetInterface =
+        (GetFileAttributesA("D:\\git\\renderdoc-nikki\\nikki\\nikkiproxy_only_create_getinterface.txt") !=
+         INVALID_FILE_ATTRIBUTES);
+
+    // Bisection switch: disable ALL d3d12 hooks entirely (file marker)
+    bool disableAllD3D12 =
+        (GetFileAttributesA("D:\\git\\renderdoc-nikki\\nikki\\nikkiproxy_disable_d3d12_hooks.txt") !=
+         INVALID_FILE_ATTRIBUTES);
+    if(disableAllD3D12)
+    {
+      RDCLOG("D3D12 hooks fully disabled by file switch");
+      return;
+    }
 
     // also require d3dcompiler_??.dll
     if(GetD3DCompiler() == NULL)
@@ -563,15 +771,19 @@ public:
       return;
     }
 
-    LibraryHooks::RegisterLibraryHook("d3d12.dll", NULL);
+    if(!onlyCreateGetInterface)
+      LibraryHooks::RegisterLibraryHook("d3d12.dll", NULL);
 
     CreateDevice.Register("d3d12.dll", "D3D12CreateDevice", D3D12CreateDevice_hook);
-    GetDebugInterface.Register("d3d12.dll", "D3D12GetDebugInterface", D3D12GetDebugInterface_hook);
+    if(!onlyCreateGetInterface)
+    {
+      GetDebugInterface.Register("d3d12.dll", "D3D12GetDebugInterface", D3D12GetDebugInterface_hook);
+      EnableExperimentalFeatures.Register("d3d12.dll", "D3D12EnableExperimentalFeatures",
+                                          D3D12EnableExperimentalFeatures_hook);
+      GetD3D11On12On7.Register("d3d11on12.dll", "GetD3D11On12On7Interface",
+                               GetD3D11On12On7Interface_hook);
+    }
     GetInterface.Register("d3d12.dll", "D3D12GetInterface", D3D12GetInterface_hook);
-    EnableExperimentalFeatures.Register("d3d12.dll", "D3D12EnableExperimentalFeatures",
-                                        D3D12EnableExperimentalFeatures_hook);
-    GetD3D11On12On7.Register("d3d11on12.dll", "GetD3D11On12On7Interface",
-                             GetD3D11On12On7Interface_hook);
 
     m_RecurseSlot = Threading::AllocateTLSSlot();
     Threading::SetTLSValue(m_RecurseSlot, NULL);
@@ -734,11 +946,11 @@ private:
     RDCDEBUG("Call to Create_Internal Feature Level %x", MinimumFeatureLevel, ToStr(riid).c_str());
 
     // we should no longer go through here in the replay application
-    RDCASSERT(!RenderDoc::Inst().IsReplayApp());
+    RDCASSERT(!RenderTest::Inst().IsReplayApp());
 
     bool EnableDebugLayer = false;
 
-    if(RenderDoc::Inst().GetCaptureOptions().apiValidation)
+    if(RenderTest::Inst().GetCaptureOptions().apiValidation)
       EnableDebugLayer = EnableD3D12DebugLayer(NULL, GetDebugInterface());
 
     RDCDEBUG("Calling real createdevice...");
@@ -836,6 +1048,8 @@ private:
 
         WrappedID3D12Device *wrap = WrappedID3D12Device::Create(dev, params, EnableDebugLayer);
 
+        g_wrappedDevice = wrap;
+
         if(devConfig)
         {
           D3D12DevConfiguration *cfg = new D3D12DevConfiguration(*devConfig);
@@ -896,30 +1110,96 @@ private:
                                                D3D_FEATURE_LEVEL MinimumFeatureLevel, REFIID riid,
                                                void **ppDevice)
   {
-    PFN_D3D12_CREATE_DEVICE createFunc = d3d12hooks.CreateDevice();
-
-    if(!createFunc)
+    Heartbeat("D3D12CreateDevice hook");
+    // debug marker: confirm the hook is actually called
     {
-      HMODULE d3d12 = GetModuleHandleA("d3d12.dll");
-
-      if(d3d12)
-        createFunc = (PFN_D3D12_CREATE_DEVICE)GetProcAddress(d3d12, "D3D12CreateDevice");
-
-      if(!createFunc)
+      FILE *f = NULL;
+      fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_d3d12_create.txt", "a");
+      if(f)
       {
-        RDCERR("Something went seriously wrong, d3d12.dll couldn't be loaded!");
-        return E_UNEXPECTED;
+        fprintf(f, "D3D12CreateDevice hook called in pid %d rsp=%p\n", (int)GetCurrentProcessId(),
+                _AddressOfReturnAddress());
+        fclose(f);
       }
     }
 
-    return d3d12hooks.Create_Internal(createFunc, NULL, pAdapter, MinimumFeatureLevel, riid,
+    // restore the original entry, call the real function, then re-patch.
+    // No trampoline is used - see InstallInlineHooks().
+    {
+      FILE *f = NULL;
+      fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_d3d12_create.txt", "a");
+      if(f)
+      {
+        fprintf(f, "  step: restore entry\n");
+        fclose(f);
+      }
+    }
+    RestoreInlineHookBytes(s_createDevFunc, s_createDevOrig);
+
+    PFN_D3D12_CREATE_DEVICE createFunc = NULL;
+    HMODULE d3d12 = GetModuleHandleA("d3d12.dll");
+    if(d3d12)
+      createFunc = (PFN_D3D12_CREATE_DEVICE)GetProcAddress(d3d12, "D3D12CreateDevice");
+
+    {
+      FILE *f = NULL;
+      fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_d3d12_create.txt", "a");
+      if(f)
+      {
+        fprintf(f, "  step: real func = %p\n", (void *)createFunc);
+        fclose(f);
+      }
+    }
+
+    HRESULT hr = E_UNEXPECTED;
+    if(createFunc)
+    {
+      // Wrap the device so RenderDoc can capture frames. The transparent
+      // (no-wrap) mode was only for bisection during the hang investigation.
+      hr = d3d12hooks.Create_Internal(createFunc, NULL, pAdapter, MinimumFeatureLevel, riid,
                                       ppDevice);
+    }
+
+    {
+      FILE *f = NULL;
+      fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_d3d12_create.txt", "a");
+      if(f)
+      {
+        fprintf(f, "  step: WRAPPED via Create_Internal hr=0x%08X (g_wrappedDevice=%p)\n",
+                (unsigned int)hr, (void *)g_wrappedDevice);
+        fclose(f);
+      }
+    }
+
+    // Re-patch so EVERY D3D12CreateDevice call is wrapped: the game creates a
+    // second device (the first is a pre-flight/validation device) and passes
+    // THAT one to CreateSwapChain. Without re-patching the second call goes to
+    // the real function and the swapchain never gets wrapped. CreateDevice is
+    // low-frequency so the re-patch cost is negligible.
+    PatchInlineHookBytes(s_createDevFunc, (void *)&D3D12CreateDevice_hook);
+
+    return hr;
   }
 
   static HRESULT WINAPI D3D12EnableExperimentalFeatures_hook(UINT NumFeatures, const IID *pIIDs,
                                                              void *pConfigurationStructs,
                                                              UINT *pConfigurationStructSizes)
   {
+    // debug: record which experimental features the game requests
+    {
+      FILE *f = NULL;
+      fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_d3d12_expfeatures.txt", "a");
+      if(f)
+      {
+        fprintf(f, "pid %d EnableExperimentalFeatures: %u features:", (int)GetCurrentProcessId(),
+                NumFeatures);
+        for(UINT i = 0; i < NumFeatures; i++)
+          fprintf(f, " %08x-%04x-%04x", pIIDs[i].Data1, pIIDs[i].Data2, pIIDs[i].Data3);
+        fprintf(f, "\n");
+        fclose(f);
+      }
+    }
+
     rdcarray<IID> allowedIIDs;
 
     // allow enabling unsigned DXIL, and GPU upload heaps on most windows versions
@@ -953,6 +1233,18 @@ private:
 
   static HRESULT WINAPI D3D12GetDebugInterface_hook(REFIID riid, void **ppvDebug)
   {
+    // debug: record requested interfaces
+    {
+      FILE *f = NULL;
+      fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_d3d12_getdebug.txt", "a");
+      if(f)
+      {
+        fprintf(f, "pid %d D3D12GetDebugInterface riid=%08x-%04x-%04x\n",
+                (int)GetCurrentProcessId(), riid.Data1, riid.Data2, riid.Data3);
+        fclose(f);
+      }
+    }
+
     if(riid == CLSID_D3D12StateObjectFactory)
     {
       RDCLOG("Deliberately reporting no support for state object factories");
@@ -978,19 +1270,208 @@ private:
 
   static HRESULT WINAPI D3D12GetInterface_hook(REFCLSID rclsid, REFIID riid, void **ppvDebug)
   {
+    {
+      FILE *f = NULL;
+      fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_d3d12_getinterface.txt", "a");
+      if(f)
+      {
+        fprintf(f, "D3D12GetInterface hook called in pid %d (rclsid=%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x)\n",
+                (int)GetCurrentProcessId(), rclsid.Data1, rclsid.Data2, rclsid.Data3, rclsid.Data4[0],
+                rclsid.Data4[1], rclsid.Data4[2], rclsid.Data4[3], rclsid.Data4[4], rclsid.Data4[5],
+                rclsid.Data4[6], rclsid.Data4[7]);
+        fclose(f);
+      }
+    }
+
     if(riid == CLSID_D3D12StateObjectFactory)
     {
+      {
+        FILE *f = NULL;
+        fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_d3d12_getinterface.txt", "a");
+        if(f)
+        {
+          fprintf(f, "  EARLY RETURN StateObjectFactory (riid=%08x-%04x-%04x)\n", riid.Data1,
+                  riid.Data2, riid.Data3);
+          fclose(f);
+        }
+      }
       RDCLOG("Deliberately reporting no support for state object factories");
       return E_NOINTERFACE;
     }
 
+    // CRITICAL: the real D3D12GetInterface HANGS when called from our hook
+    // (11934 calls entered, none returned - the game's threads all block
+    // inside d3d12/D3D12Core). Only the device-creation path calls the real
+    // function; every other interface is answered directly.
+    bool isDevice = (riid == __uuidof(ID3D12Device) || riid == __uuidof(ID3D12Device1) ||
+                     riid == __uuidof(ID3D12Device2) || riid == __uuidof(ID3D12Device3) ||
+                     riid == __uuidof(ID3D12Device4) || riid == __uuidof(ID3D12Device5) ||
+                     riid == __uuidof(ID3D12Device6) || riid == __uuidof(ID3D12Device7) ||
+                     riid == __uuidof(ID3D12Device8) || riid == __uuidof(ID3D12Device9) ||
+                     riid == __uuidof(ID3D12Device10) || riid == __uuidof(ID3D12Device11) ||
+                     riid == __uuidof(ID3D12Device12) || riid == __uuidof(ID3D12Device13) ||
+                     riid == __uuidof(ID3D12Device14) || riid == __uuidof(ID3D12Device15));
+
+    if(!isDevice)
+    {
+      // The game requests the DRED configuration interface through
+      // D3D12GetInterface(CLSID_D3D12DeviceRemovedExtendedData, riid). If we
+      // return E_NOINTERFACE the game retries its whole D3D12 init forever
+      // (LoadLibrary loop every ~108s). Hand back a dummy DRED settings
+      // object instead so the game can continue.
+      if(rclsid.Data1 == 0x4a75bbc4)
+      {
+        FILE *f = NULL;
+        fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_d3d12_getinterface.txt", "a");
+        if(f)
+        {
+          fprintf(f, "  DRED dummy returned for riid=%08x-%04x-%04x\n", riid.Data1, riid.Data2,
+                  riid.Data3);
+          fclose(f);
+        }
+        *ppvDebug = &s_dummyDREDSettings;
+        return S_OK;
+      }
+
+      {
+        FILE *f = NULL;
+        fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_d3d12_getinterface.txt", "a");
+        if(f)
+        {
+          fprintf(f, "  NON-DEVICE riid=%08x-%04x-%04x -> E_NOINTERFACE (no real call)\n",
+                  riid.Data1, riid.Data2, riid.Data3);
+          fclose(f);
+        }
+      }
+      return E_NOINTERFACE;
+    }
+
+    // device path: restore, call real, wrap. (only for the device interface)
+    RestoreInlineHookBytes(s_getInterfaceFunc, s_getInterfaceOrig);
+    {
+      FILE *f = NULL;
+      fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_d3d12_getinterface.txt", "a");
+      if(f)
+      {
+        fprintf(f, "  step: restored\n");
+        fclose(f);
+      }
+    }
+    HMODULE d3d12 = GetModuleHandleA("d3d12.dll");
+    PFN_D3D12_GET_INTERFACE realGetInterface = NULL;
+    if(d3d12)
+      realGetInterface = (PFN_D3D12_GET_INTERFACE)GetProcAddress(d3d12, "D3D12GetInterface");
+
     IUnknown *realUnk = NULL;
-    HRESULT real = d3d12hooks.GetInterface()(rclsid, riid, (void **)&realUnk);
+    HRESULT real = E_UNEXPECTED;
+    if(realGetInterface)
+    {
+      {
+        FILE *f = NULL;
+        fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_d3d12_getinterface.txt", "a");
+        if(f)
+        {
+          fprintf(f, "  step: calling real %p\n", (void *)realGetInterface);
+          fclose(f);
+        }
+      }
+      real = realGetInterface(rclsid, riid, (void **)&realUnk);
+      {
+        FILE *f = NULL;
+        fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_d3d12_getinterface.txt", "a");
+        if(f)
+        {
+          fprintf(f, "  step: real returned 0x%08X unk=%p\n", (unsigned int)real, (void *)realUnk);
+          fclose(f);
+        }
+      }
+    }
+
+    // NO re-patch: keep d3d12 code pristine (anti-cheat penalises modification)
+
+    // debug: record requested interfaces
+    {
+      FILE *f = NULL;
+      fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_d3d12_getinterface.txt", "a");
+      if(f)
+      {
+        fprintf(f, "pid %d t=%llu D3D12GetInterface rclsid=%08x-%04x-%04x riid=%08x-%04x-%04x real=0x%08X\n",
+                (int)GetCurrentProcessId(), (unsigned long long)GetTickCount64(), rclsid.Data1,
+                rclsid.Data2, rclsid.Data3, riid.Data1, riid.Data2, riid.Data3, (unsigned int)real);
+        fclose(f);
+      }
+    }
+
+    // The game creates its D3D12 device through D3D12GetInterface (D3D12 Core
+    // API). Wrap the device so capture works; if wrapping fails, hand back the
+    // real device so the game can still initialise.
+    if(SUCCEEDED(real) && realUnk)
+    {
+      if(riid == __uuidof(ID3D12Device) || riid == __uuidof(ID3D12Device1) ||
+         riid == __uuidof(ID3D12Device2) || riid == __uuidof(ID3D12Device3) ||
+         riid == __uuidof(ID3D12Device4) || riid == __uuidof(ID3D12Device5) ||
+         riid == __uuidof(ID3D12Device6) || riid == __uuidof(ID3D12Device7) ||
+         riid == __uuidof(ID3D12Device8) || riid == __uuidof(ID3D12Device9) ||
+         riid == __uuidof(ID3D12Device10) || riid == __uuidof(ID3D12Device11) ||
+         riid == __uuidof(ID3D12Device12) || riid == __uuidof(ID3D12Device13) ||
+         riid == __uuidof(ID3D12Device14) || riid == __uuidof(ID3D12Device15))
+      {
+        D3D12InitParams params;
+        params.MinimumFeatureLevel = D3D_FEATURE_LEVEL_11_0;
+
+        WrappedID3D12Device *wrap = WrappedID3D12Device::Create((ID3D12Device *)realUnk, params,
+                                                                false);
+        if(wrap)
+        {
+          HRESULT qhr = wrap->QueryInterface(riid, ppvDebug);
+          if(SUCCEEDED(qhr))
+          {
+            FILE *f = NULL;
+            fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_d3d12_create.txt", "a");
+            if(f)
+            {
+              fprintf(f, "D3D12GetInterface wrapped device %p -> %p (riid=%08x-%04x-%04x)\n",
+                      (void *)realUnk, *ppvDebug, riid.Data1, riid.Data2, riid.Data3);
+              fclose(f);
+            }
+            realUnk->Release();
+            return S_OK;
+          }
+          wrap->Release();
+        }
+        else
+        {
+          FILE *f = NULL;
+          fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_d3d12_create.txt", "a");
+          if(f)
+          {
+            fprintf(f, "D3D12GetInterface wrap FAILED - returning real device %p\n",
+                    (void *)realUnk);
+            fclose(f);
+          }
+        }
+
+        // fallback: hand the real device to the game (do not release)
+        *ppvDebug = realUnk;
+        return S_OK;
+      }
+    }
 
     HRESULT hr = GetWrappedInterface(realUnk, riid, ppvDebug);
 
-    if(realUnk)
+    // If we can't wrap the requested interface, hand back the REAL interface
+    // instead of E_NOINTERFACE: the game retries in a tight loop otherwise
+    // (11934 calls observed), and each retry re-patches d3d12 which the
+    // anti-cheat penalises with a crash.
+    if(FAILED(hr) && realUnk)
+    {
+      *ppvDebug = realUnk;
+      hr = S_OK;
+    }
+    else if(realUnk)
+    {
       realUnk->Release();
+    }
 
     if(SUCCEEDED(hr))
       return hr;
@@ -1003,6 +1484,14 @@ private:
 };
 
 D3D12Hook D3D12Hook::d3d12hooks;
+
+void *D3D12Hook::s_createDevFunc = NULL;
+uint8_t D3D12Hook::s_createDevOrig[12];
+void *D3D12Hook::s_getInterfaceFunc = NULL;
+uint8_t D3D12Hook::s_getInterfaceOrig[12];
+void *D3D12Hook::s_d3d12coreGIFunc = NULL;
+uint8_t D3D12Hook::s_d3d12coreGIOrig[12];
+D3D12Hook::DummyDREDSettings2 D3D12Hook::s_dummyDREDSettings;
 
 HRESULT CreateD3D12_Internal(RealD3D12CreateFunction real, D3D12DevConfiguration *devConfig,
                              IUnknown *pAdapter, D3D_FEATURE_LEVEL MinimumFeatureLevel, REFIID riid,
@@ -1031,3 +1520,16 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12DeviceFactory::GetConfigurationInterface(
 
   return E_NOINTERFACE;
 }
+
+// exported for the dxgi hooks to trigger inline hook installation once d3d12.dll is loaded
+extern void InstallD3D12InlineHooks()
+{
+  D3D12Hook::InstallInlineHooksStatic();
+}
+
+extern "C" void *GetWrappedD3D12Device()
+{
+  return (void *)g_wrappedDevice;
+}
+
+

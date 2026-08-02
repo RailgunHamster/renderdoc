@@ -642,7 +642,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
             // Modify using the annotations stored in the event node
             for(const PendingAnnotation &annot : cmdListInfo.pendingAnnotations)
             {
-              if(annot.valueType == eRENDERDOC_Empty)
+              if(annot.valueType == eRENDERTEST_Empty)
                 localAnnotations->EraseChildByKeyPath(annot.key);
               else
                 WriteAnnotation(localAnnotations->CreateChildByKeyPath(annot.key), annot.valueType,
@@ -796,7 +796,7 @@ void WrappedID3D12CommandQueue::ExecuteCommandListsInternal(UINT NumCommandLists
   if(!m_MarkedActive)
   {
     m_MarkedActive = true;
-    RenderDoc::Inst().AddActiveDriver(RDCDriver::D3D12, false);
+    RenderTest::Inst().AddActiveDriver(RDCDriver::D3D12, false);
   }
 
   if(IsActiveCapturing(m_State))
@@ -1443,7 +1443,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12CommandQueue::Present(
     _In_ HWND hWindow, D3D12_DOWNLEVEL_PRESENT_FLAGS Flags)
 {
   // D3D12 on windows 7
-  if(!RenderDoc::Inst().GetCaptureOptions().allowVSync)
+  if(!RenderTest::Inst().GetCaptureOptions().allowVSync)
   {
     Flags = D3D12_DOWNLEVEL_PRESENT_FLAG_NONE;
   }
@@ -1491,15 +1491,26 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12CommandQueue::Present(
     if(m_pPresentHWND != NULL)
     {
       Keyboard::RemoveInputWindow(WindowingSystem::Win32, m_pPresentHWND);
-      RenderDoc::Inst().RemoveFrameCapturer(
+      RenderTest::Inst().RemoveFrameCapturer(
           DeviceOwnedWindow(m_pDevice->GetFrameCapturerDevice(), m_pPresentHWND));
     }
 
     Keyboard::AddInputWindow(WindowingSystem::Win32, hWindow);
 
-    RenderDoc::Inst().AddFrameCapturer(
+    RenderTest::Inst().AddFrameCapturer(
         DeviceOwnedWindow(m_pDevice->GetFrameCapturerDevice(), hWindow),
         m_pDevice->GetFrameCapturer());
+
+    {
+      FILE *f = NULL;
+      fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_capture.txt", "a");
+      if(f)
+      {
+        fprintf(f, "pid %d AddFrameCapturer dev=%p hwnd=%p\n", (int)GetCurrentProcessId(),
+                (void *)m_pDevice->GetFrameCapturerDevice(), (void *)hWindow);
+        fclose(f);
+      }
+    }
   }
 
   m_pPresentSource = pSourceTex2D;
@@ -1515,9 +1526,9 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12CommandQueue::Present(
 
 template <typename SerialiserType>
 bool WrappedID3D12CommandQueue::Serialise_SetQueueAnnotation(SerialiserType &ser, rdcstr key,
-                                                             RENDERDOC_AnnotationType valueType,
+                                                             RENDERTEST_AnnotationType valueType,
                                                              uint32_t valueVectorWidth,
-                                                             RENDERDOC_AnnotationValue value)
+                                                             RENDERTEST_AnnotationValue value)
 {
   ID3D12CommandQueue *pQueue = this;
   SERIALISE_ELEMENT(pQueue);
@@ -1538,7 +1549,7 @@ bool WrappedID3D12CommandQueue::Serialise_SetQueueAnnotation(SerialiserType &ser
 
       SDObject *root = m_Cmd.m_RootAnnotation;
 
-      if(valueType == eRENDERDOC_Empty)
+      if(valueType == eRENDERTEST_Empty)
       {
         root->EraseChildByKeyPath(key);
       }
@@ -1582,5 +1593,5 @@ INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12CommandQueue, Wait, ID3D12Fen
                                 UINT64 Value);
 
 INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12CommandQueue, SetQueueAnnotation, rdcstr key,
-                                RENDERDOC_AnnotationType valueType, uint32_t valueVectorWidth,
-                                RENDERDOC_AnnotationValue value);
+                                RENDERTEST_AnnotationType valueType, uint32_t valueVectorWidth,
+                                RENDERTEST_AnnotationValue value);

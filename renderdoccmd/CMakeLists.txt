@@ -89,6 +89,7 @@ else()
     if(INTERNAL_SELF_CAPTURE)
         set_target_properties(renderdoccmd PROPERTIES OUTPUT_NAME "rdocselfcmd")
     endif()
+    set_target_properties(renderdoccmd PROPERTIES OUTPUT_NAME "${RDOC_BASE_NAME}cmd")
 endif()
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")

@@ -1,0 +1,1785 @@
+ExtensionGallery settings after reading 'SOFTWARE\Microsoft\Debug Engine' registry:
+ExtensionGallery ExtensionRepository: Implicit
+Opened log file 'D:\git\renderdoc-nikki\nikki\windbg_out.txt'
+
+************* Preparing the environment for Debugger Extensions Gallery repositories **************
+   ExtensionRepository : Implicit
+   UseExperimentalFeatureForNugetShare : true
+   AllowNugetExeUpdate : true
+   NonInteractiveNuget : true
+   AllowNugetMSCredentialProviderInstall : true
+   AllowParallelInitializationOfLocalRepositories : true
+
+   -- Configuring repositories
+      ----> Repository : LocalInstalled, Enabled: true
+      ----> Repository : UserExtensions, Enabled: true
+
+>>>>>>>>>>>>> Preparing the environment for Debugger Extensions Gallery repositories completed, duration 0.000 seconds
+
+************* Waiting for Debugger Extensions Gallery to Initialize **************
+
+>>>>>>>>>>>>> Waiting for Debugger Extensions Gallery to Initialize completed, duration 0.375 seconds
+   ----> Repository : UserExtensions, Enabled: true, Packages count: 0
+   ----> Repository : LocalInstalled, Enabled: true, Packages count: 46
+
+Microsoft (R) Windows Debugger Version 10.0.29617.1000 AMD64
+Copyright (c) Microsoft Corporation. All rights reserved.
+
+
+Loading Dump File [D:\git\renderdoc-nikki\nikki\dumps\crash_36988_92017687.dmp]
+User Mini Dump File with Full Memory : Only application data is available
+
+Symbol search path is: srv*
+Executable search path is: 
+Windows 10 Version 26100 MP (24 procs) Free x64
+Product: Server, suite: TerminalServer DataCenter SingleUserTS
+Edition build lab: 26100.1.amd64fre.ge_release.240331-1435
+Debug session time: Sat Aug  1 16:39:59.000 2026 (UTC + 8:00)
+System Uptime: 1 days 1:33:47.783
+Process Uptime: 0 days 0:00:36.000
+.NatVis script successfully loaded from 'C:\Program Files\WindowsApps\Microsoft.WinDbg_1.2606.22001.0_x64__8wekyb3d8bbwe\amd64\Visualizers\atlmfc.natvis'
+NatVis script successfully loaded from 'C:\Program Files\WindowsApps\Microsoft.WinDbg_1.2606.22001.0_x64__8wekyb3d8bbwe\amd64\Visualizers\concurrency.natvis'
+NatVis script successfully loaded from 'C:\Program Files\WindowsApps\Microsoft.WinDbg_1.2606.22001.0_x64__8wekyb3d8bbwe\amd64\Visualizers\cpp_rest.natvis'
+NatVis script successfully loaded from 'C:\Program Files\WindowsApps\Microsoft.WinDbg_1.2606.22001.0_x64__8wekyb3d8bbwe\amd64\Visualizers\ObjectiveC.natvis'
+NatVis script successfully loaded from 'C:\Program Files\WindowsApps\Microsoft.WinDbg_1.2606.22001.0_x64__8wekyb3d8bbwe\amd64\Visualizers\stl.natvis'
+NatVis script successfully loaded from 'C:\Program Files\WindowsApps\Microsoft.WinDbg_1.2606.22001.0_x64__8wekyb3d8bbwe\amd64\Visualizers\Windows.Data.Json.natvis'
+NatVis script successfully loaded from 'C:\Program Files\WindowsApps\Microsoft.WinDbg_1.2606.22001.0_x64__8wekyb3d8bbwe\amd64\Visualizers\Windows.Devices.Geolocation.natvis'
+NatVis script successfully loaded from 'C:\Program Files\WindowsApps\Microsoft.WinDbg_1.2606.22001.0_x64__8wekyb3d8bbwe\amd64\Visualizers\Windows.Devices.Sensors.natvis'
+NatVis script successfully loaded from 'C:\Program Files\WindowsApps\Microsoft.WinDbg_1.2606.22001.0_x64__8wekyb3d8bbwe\amd64\Visualizers\Windows.Media.natvis'
+NatVis script successfully loaded from 'C:\Program Files\WindowsApps\Microsoft.WinDbg_1.2606.22001.0_x64__8wekyb3d8bbwe\amd64\Visualizers\windows.natvis'
+NatVis script successfully loaded from 'C:\Program Files\WindowsApps\Microsoft.WinDbg_1.2606.22001.0_x64__8wekyb3d8bbwe\amd64\Visualizers\winrt.natvis'
+...............................................................
+................................................................
+..................
+Loading unloaded module list
+..................................
+This dump file has an exception of interest stored in it.
+The stored exception information can be accessed via .ecxr
+(907c.55dc): Access violation - code c0000005 (first/second chance not available)
+For analysis of this file, run !analyze -v
+ntdll!NtGetContextThread+0x14:
+00007fff`e85615b4 c3              ret
+0:040> ~*k; q
+~*k; q
+
+   0  Id: 907c.7b8 Suspend: 0 Teb: 00000000`002a2000 Unfrozen "GameThread"
+ # Child-SP          RetAddr               Call Site
+00 00000000`00f7f9a8 00007fff`e5c73dc4     ntdll!NtFsControlFile+0x14
+01 00000000`00f7f9b0 00000001`41552b70     KERNELBASE!PeekNamedPipe+0x104
+02 00000000`00f7fa80 00000001`4464585d     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x133640
+03 00000000`00f7fc10 00000001`4153d02c     X6Game_Win64_Shipping!lua_gethookcount+0x2f76d
+04 00000000`00f7fda0 00000001`4136d887     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x11dafc
+05 00000000`00f7fe00 00000001`413a1da9     X6Game_Win64_Shipping!ffxGetDeviceDX12+0x8d07
+06 00000000`00f7fe30 00000001`41539f05     X6Game_Win64_Shipping!ffxFsr2ResourceIsNull+0x33349
+07 00000000`00f7fe60 00000001`446447da     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x11a9d5
+08 00000000`00f7fea0 00000001`4464d474     X6Game_Win64_Shipping!lua_gethookcount+0x2e6ea
+09 00000000`00f7fee0 00000001`488c3056     X6Game_Win64_Shipping!lua_gethookcount+0x37384
+0a 00000000`00f7ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!NVSDK_NGX_VULKAN_Shutdown1+0xb7236
+0b 00000000`00f7ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+0c 00000000`00f7ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+   1  Id: 907c.8a10 Suspend: 0 Teb: 00000000`002a6000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000000`0293fbf8 00007fff`e8451d9e     ntdll!NtWaitForWorkViaWorkerFactory+0x14
+01 00000000`0293fc00 00007fff`e6b0dbe7     ntdll!TppWorkerThread+0x37e
+02 00000000`0293ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+03 00000000`0293ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+   2  Id: 907c.79c Suspend: 0 Teb: 00000000`002a8000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000000`034bfbf8 00007fff`e8451d9e     ntdll!NtWaitForWorkViaWorkerFactory+0x14
+01 00000000`034bfc00 00007fff`e6b0dbe7     ntdll!TppWorkerThread+0x37e
+02 00000000`034bff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+03 00000000`034bff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+   3  Id: 907c.535c Suspend: 0 Teb: 00000000`002aa000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000000`0512fbf8 00007fff`e8451d9e     ntdll!NtWaitForWorkViaWorkerFactory+0x14
+01 00000000`0512fc00 00007fff`e6b0dbe7     ntdll!TppWorkerThread+0x37e
+02 00000000`0512ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+03 00000000`0512ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+   4  Id: 907c.1180 Suspend: 0 Teb: 00000000`002ac000 Unfrozen "TargetControlServerThread"
+ # Child-SP          RetAddr               Call Site
+00 00000000`0783fa58 00007fff`e84d2e74     ntdll!NtDelayExecution+0x14
+01 00000000`0783fa60 00007fff`e5c265d1     ntdll!RtlDelayExecution+0x34
+*** WARNING: Unable to verify checksum for rendertest.dll
+02 00000000`0783fa90 00007ffe`f61ef201     KERNELBASE!SleepEx+0x91
+03 (Inline Function) --------`--------     rendertest!Threading::Sleep+0xb [D:\git\renderdoc-nikki\renderdoc\os\win32\win32_threading.cpp @ 376] 
+04 00000000`0783fb20 00007ffe`f617076d     rendertest!RenderTest::TargetControlServerThread+0x181 [D:\git\renderdoc-nikki\renderdoc\core\target_control.cpp @ 462] 
+05 00000000`0783fe60 00007ffe`f61c0cdd     rendertest!<lambda_ea41837fd8cea916ac48b7931804e289>::operator()+0x1d
+06 00000000`0783fe90 00007ffe`f61bcd6e     rendertest!std::invoke<<lambda_ea41837fd8cea916ac48b7931804e289> &>+0x1d
+07 00000000`0783fec0 00007ffe`f6254181     rendertest!std::_Func_impl_no_alloc<<lambda_ea41837fd8cea916ac48b7931804e289>,void>::_Do_call+0x1e
+08 (Inline Function) --------`--------     rendertest!std::_Func_class<void>::operator()+0x17 [C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\functional @ 1057] 
+09 00000000`0783fef0 00007fff`e6b0dbe7     rendertest!Threading::sThreadInit+0x81 [D:\git\renderdoc-nikki\renderdoc\os\win32\win32_threading.cpp @ 180] 
+0a 00000000`0783ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+0b 00000000`0783ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+   5  Id: 907c.67ec Suspend: 0 Teb: 00000000`002ba000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000000`0933fef8 00007fff`e4c6f60e     ntdll!NtRemoveIoCompletion+0x14
+01 00000000`0933ff00 00007fff`e6b0dbe7     mswsock!SockAsyncThread+0xae
+02 00000000`0933ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+03 00000000`0933ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+   6  Id: 907c.8e10 Suspend: 0 Teb: 00000000`002c0000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000000`0aa3f958 00007fff`e5bfdb33     ntdll!NtWaitForMultipleObjects+0x14
+01 00000000`0aa3f960 00007fff`e65b7b2e     KERNELBASE!WaitForMultipleObjectsEx+0x123
+02 (Inline Function) --------`--------     combase!WaitCoalesced+0x79 [onecore\com\published\comutils\coalescedwait.cxx @ 70] 
+03 00000000`0aa3fc50 00007fff`e65b1721     combase!CROIDTable::WorkerThreadLoop+0xae [onecore\com\combase\dcomrem\refcache.cxx @ 1692] 
+04 00000000`0aa3fec0 00007fff`e65b15d9     combase!CRpcThread::WorkerLoop+0x4d [onecore\com\combase\dcomrem\threads.cxx @ 283] 
+05 00000000`0aa3ff30 00007fff`e6b0dbe7     combase!CRpcThreadCache::RpcWorkerThreadEntry+0x29 [onecore\com\combase\dcomrem\threads.cxx @ 77] 
+06 00000000`0aa3ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`0aa3ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+   7  Id: 907c.8a1c Suspend: 0 Teb: 00000000`002c2000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000000`0b5bfbf8 00007fff`e8451d9e     ntdll!NtWaitForWorkViaWorkerFactory+0x14
+01 00000000`0b5bfc00 00007fff`e6b0dbe7     ntdll!TppWorkerThread+0x37e
+02 00000000`0b5bff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+03 00000000`0b5bff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+   8  Id: 907c.7378 Suspend: 0 Teb: 00000000`002c4000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000000`0c13fbf8 00007fff`e8451d9e     ntdll!NtWaitForWorkViaWorkerFactory+0x14
+01 00000000`0c13fc00 00007fff`e6b0dbe7     ntdll!TppWorkerThread+0x37e
+02 00000000`0c13ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+03 00000000`0c13ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+   9  Id: 907c.2c18 Suspend: 0 Teb: 00000000`002c6000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000000`2373fd28 00007fff`e84d2e74     ntdll!NtDelayExecution+0x14
+01 00000000`2373fd30 00007fff`e5c265d1     ntdll!RtlDelayExecution+0x34
+02 00000000`2373fd60 00007ffe`9fc9754e     KERNELBASE!SleepEx+0x91
+03 00000000`2373fdf0 00007ffe`9fcb8e9c     ACE_Base64+0x11754e
+04 00000000`2373fe30 00007ffe`9fcb661c     ACE_Base64+0x138e9c
+05 00000000`2373fea0 00007ffe`9fcb5d29     ACE_Base64+0x13661c
+06 00000000`2373fed0 00007ffe`9fcb5cac     ACE_Base64+0x135d29
+07 00000000`2373ff00 00007ffe`a0ecb176     ACE_Base64+0x135cac
+08 00000000`2373ff30 00007fff`e6b0dbe7     ACE_Base64!NullExportFunction+0x10bbdc6
+09 00000000`2373ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+0a 00000000`2373ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  10  Id: 907c.9de4 Suspend: 0 Teb: 00000000`002c8000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000000`242bfb18 00007fff`e84d2e74     ntdll!NtDelayExecution+0x14
+01 00000000`242bfb20 00007fff`e5c265d1     ntdll!RtlDelayExecution+0x34
+02 00000000`242bfb50 00007ffe`9fc9754e     KERNELBASE!SleepEx+0x91
+03 00000000`242bfbe0 00007ffe`a2d9c835     ACE_Base64+0x11754e
+04 00000000`242bfc20 00007ffe`9fc97076     ACE_Base64!NullExportFunction+0x2f8d485
+05 00000000`242bff00 00007ffe`a0ecb176     ACE_Base64+0x117076
+06 00000000`242bff30 00007fff`e6b0dbe7     ACE_Base64!NullExportFunction+0x10bbdc6
+07 00000000`242bff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+08 00000000`242bff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  11  Id: 907c.795c Suspend: 0 Teb: 00000000`002ca000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000000`24e3fd68 00007fff`e7de8fd2     win32u!NtUserGetMessage+0x14
+01 00000000`24e3fd70 00007ffe`9fc8e649     user32!GetMessageW+0x22
+02 00000000`24e3fdd0 00007ffe`9fc8daf6     ACE_Base64+0x10e649
+03 00000000`24e3ff00 00007ffe`a0ecb176     ACE_Base64+0x10daf6
+04 00000000`24e3ff30 00007fff`e6b0dbe7     ACE_Base64!NullExportFunction+0x10bbdc6
+05 00000000`24e3ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+06 00000000`24e3ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  12  Id: 907c.7d0c Suspend: 0 Teb: 00000000`002cc000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000000`259bfbf8 00007fff`e8451d9e     ntdll!NtWaitForWorkViaWorkerFactory+0x14
+01 00000000`259bfc00 00007fff`e6b0dbe7     ntdll!TppWorkerThread+0x37e
+02 00000000`259bff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+03 00000000`259bff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  13  Id: 907c.8a70 Suspend: 0 Teb: 00000000`002ce000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000000`2653f7d8 00007fff`e4c568ea     ntdll!NtWaitForSingleObject+0x14
+01 00000000`2653f7e0 00007fff`e4c565c4     mswsock!SockWaitForSingleObject+0x15a
+02 00000000`2653f870 00007fff`e6969781     mswsock!WSPSelect+0xa04
+03 00000000`2653fa30 00007ffe`a24251ef     ws2_32!select+0x201
+04 00000000`2653fb90 00007ffe`a0b89854     ACE_Base64!NullExportFunction+0x2615e3f
+05 00000000`2653ff30 00007fff`e6b0dbe7     ACE_Base64!NullExportFunction+0xd7a4a4
+06 00000000`2653ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`2653ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  14  Id: 907c.a144 Suspend: 0 Teb: 00000000`002d0000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000000`270bfd58 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`270bfd60 00007ffe`a0b89667     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`270bfe00 00007ffe`a2425c28     ACE_Base64!NullExportFunction+0xd7a2b7
+03 00000000`270bfe30 00007ffe`a0b89854     ACE_Base64!NullExportFunction+0x2616878
+04 00000000`270bff30 00007fff`e6b0dbe7     ACE_Base64!NullExportFunction+0xd7a4a4
+05 00000000`270bff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+06 00000000`270bff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  15  Id: 907c.8bf4 Suspend: 0 Teb: 00000000`002d2000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000000`27c3fde8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`27c3fdf0 00007ffe`a2cb67f0     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`27c3fe90 00007fff`e6b0dbe7     ACE_Base64!NullExportFunction+0x2ea7440
+03 00000000`27c3ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+04 00000000`27c3ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  16  Id: 907c.9c7c Suspend: 0 Teb: 00000000`002d4000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000000`287bf908 00007fff`e5bfdb33     ntdll!NtWaitForMultipleObjects+0x14
+01 00000000`287bf910 00007ffe`a2c675b8     KERNELBASE!WaitForMultipleObjectsEx+0x123
+02 00000000`287bfc00 00007ffe`a284d991     ACE_Base64!NullExportFunction+0x2e58208
+03 00000000`287bfd10 00007ffe`a2e38551     ACE_Base64!NullExportFunction+0x2a3e5e1
+04 00000000`287bfd40 00007ffe`9fcdb808     ACE_Base64!NullExportFunction+0x30291a1
+05 00000000`287bfef0 00007ffe`a0ecb176     ACE_Base64+0x15b808
+06 00000000`287bff30 00007fff`e6b0dbe7     ACE_Base64!NullExportFunction+0x10bbdc6
+07 00000000`287bff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+08 00000000`287bff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  17  Id: 907c.6038 Suspend: 0 Teb: 00000000`002d6000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000000`2933fb18 00007fff`e845f594     ntdll!NtWaitForAlertByThreadId+0x14
+01 00000000`2933fb20 00007fff`e5bfd808     ntdll!RtlSleepConditionVariableSRW+0x1c4
+02 00000000`2933fbc0 00007ffe`a0e772f5     KERNELBASE!SleepConditionVariableSRW+0x38
+03 00000000`2933fc00 00007ffe`9fce5707     ACE_Base64!NullExportFunction+0x1067f45
+04 00000000`2933fc40 00007ffe`9fce76b7     ACE_Base64+0x165707
+05 00000000`2933fc90 00007ffe`a2d764dc     ACE_Base64+0x1676b7
+06 00000000`2933fd80 00007ffe`a283010a     ACE_Base64!NullExportFunction+0x2f6712c
+07 00000000`2933fdf0 00007ffe`9fd00dd6     ACE_Base64!NullExportFunction+0x2a20d5a
+08 00000000`2933ff00 00007ffe`a0ecb176     ACE_Base64+0x180dd6
+09 00000000`2933ff30 00007fff`e6b0dbe7     ACE_Base64!NullExportFunction+0x10bbdc6
+0a 00000000`2933ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+0b 00000000`2933ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  18  Id: 907c.4ad8 Suspend: 0 Teb: 00000000`002d8000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000000`29ebfb38 00007fff`e845f594     ntdll!NtWaitForAlertByThreadId+0x14
+01 00000000`29ebfb40 00007fff`e5bfd808     ntdll!RtlSleepConditionVariableSRW+0x1c4
+02 00000000`29ebfbe0 00007ffe`a0e772f5     KERNELBASE!SleepConditionVariableSRW+0x38
+03 00000000`29ebfc20 00007ffe`9fce5707     ACE_Base64!NullExportFunction+0x1067f45
+04 00000000`29ebfc60 00007ffe`a2d71533     ACE_Base64+0x165707
+05 00000000`29ebfcb0 00007ffe`a2d785c5     ACE_Base64!NullExportFunction+0x2f62183
+06 00000000`29ebfda0 00007ffe`a286b869     ACE_Base64!NullExportFunction+0x2f69215
+07 00000000`29ebfdf0 00007ffe`9fd00e16     ACE_Base64!NullExportFunction+0x2a5c4b9
+08 00000000`29ebff00 00007ffe`a0ecb176     ACE_Base64+0x180e16
+09 00000000`29ebff30 00007fff`e6b0dbe7     ACE_Base64!NullExportFunction+0x10bbdc6
+0a 00000000`29ebff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+0b 00000000`29ebff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  19  Id: 907c.7260 Suspend: 0 Teb: 00000000`002dc000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000000`2b5bfee8 00007fff`b4fd2437     ntdll!NtWaitForMultipleObjects+0x14
+01 00000000`2b5bfef0 00007fff`e6b0dbe7     netbios!NetbiosWaiter+0xe7
+02 00000000`2b5bff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+03 00000000`2b5bff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  20  Id: 907c.9f8c Suspend: 0 Teb: 00000000`002e2000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000000`2c13fd38 00007fff`e84d2e74     ntdll!NtDelayExecution+0x14
+01 00000000`2c13fd40 00007fff`e5c265d1     ntdll!RtlDelayExecution+0x34
+02 00000000`2c13fd70 00007ffe`9fd2b95b     KERNELBASE!SleepEx+0x91
+03 00000000`2c13fe00 00007ffe`9fc8f727     ACE_Base64+0x1ab95b
+04 00000000`2c13ff00 00007ffe`a0ecb176     ACE_Base64+0x10f727
+05 00000000`2c13ff30 00007fff`e6b0dbe7     ACE_Base64!NullExportFunction+0x10bbdc6
+06 00000000`2c13ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`2c13ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  21  Id: 907c.83cc Suspend: 0 Teb: 00000000`002e4000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000000`2ccbfd98 00007fff`e84d2e74     ntdll!NtDelayExecution+0x14
+01 00000000`2ccbfda0 00007fff`e5c265d1     ntdll!RtlDelayExecution+0x34
+02 00000000`2ccbfdd0 00007ffe`a27890ad     KERNELBASE!SleepEx+0x91
+03 00000000`2ccbfe60 00007ffe`a2786ceb     ACE_Base64!NullExportFunction+0x2979cfd
+04 00000000`2ccbff30 00007fff`e6b0dbe7     ACE_Base64!NullExportFunction+0x297793b
+05 00000000`2ccbff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+06 00000000`2ccbff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  22  Id: 907c.924 Suspend: 0 Teb: 00000000`002e6000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000000`2d83f968 00007fff`e84d2e74     ntdll!NtDelayExecution+0x14
+01 00000000`2d83f970 00007fff`e5c265d1     ntdll!RtlDelayExecution+0x34
+02 00000000`2d83f9a0 00007ffe`a23d00f0     KERNELBASE!SleepEx+0x91
+03 00000000`2d83fa30 00007ffe`a23d275b     ACE_Base64!NullExportFunction+0x25c0d40
+04 00000000`2d83ff30 00007fff`e6b0dbe7     ACE_Base64!NullExportFunction+0x25c33ab
+05 00000000`2d83ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+06 00000000`2d83ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  23  Id: 907c.5088 Suspend: 0 Teb: 00000000`002e8000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000000`2e3bfdd8 00007fff`e84d2e74     ntdll!NtDelayExecution+0x14
+01 00000000`2e3bfde0 00007fff`e5c265d1     ntdll!RtlDelayExecution+0x34
+02 00000000`2e3bfe10 00007ffe`9fd98f9b     KERNELBASE!SleepEx+0x91
+03 00000000`2e3bfea0 00007fff`e6b0dbe7     ACE_Base64+0x218f9b
+04 00000000`2e3bff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+05 00000000`2e3bff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  24  Id: 907c.cc4 Suspend: 0 Teb: 00000000`002ee000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000000`2ef3fe18 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`2ef3fe20 00007ffe`9fe652f4     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`2ef3fec0 00007ffe`9fe65439     ACE_Base64!NullExportFunction+0x55f44
+03 00000000`2ef3ff00 00007ffe`a0ecb176     ACE_Base64!NullExportFunction+0x56089
+04 00000000`2ef3ff30 00007fff`e6b0dbe7     ACE_Base64!NullExportFunction+0x10bbdc6
+05 00000000`2ef3ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+06 00000000`2ef3ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  25  Id: 907c.5020 Suspend: 0 Teb: 00000000`002f4000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000000`2aa3fd28 00007ffe`a23ca262     ACE_Base64!NullExportFunction+0x915884
+01 00000000`2aa3fd30 00007ffe`a26b679b     ACE_Base64!NullExportFunction+0x25baeb2
+02 00000000`2aa3fdf0 00007ffe`a06e80d4     ACE_Base64!NullExportFunction+0x28a73eb
+03 00000000`2aa3fec0 00007ffe`a0677343     ACE_Base64!NullExportFunction+0x8d8d24
+04 00000000`2aa3ff00 00007ffe`a0ecb176     ACE_Base64!NullExportFunction+0x867f93
+05 00000000`2aa3ff30 00007fff`e6b0dbe7     ACE_Base64!NullExportFunction+0x10bbdc6
+06 00000000`2aa3ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`2aa3ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  26  Id: 907c.5a4 Suspend: 0 Teb: 00000000`002fa000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000000`311bfd98 00007ffe`a23ca262     ACE_Base64!NullExportFunction+0x915884
+01 00000000`311bfda0 00007ffe`a065a8a7     ACE_Base64!NullExportFunction+0x25baeb2
+02 00000000`311bfe60 00007ffe`a0659bb5     ACE_Base64!NullExportFunction+0x84b4f7
+03 00000000`311bfed0 00007ffe`a0677343     ACE_Base64!NullExportFunction+0x84a805
+04 00000000`311bff00 00007ffe`a0ecb176     ACE_Base64!NullExportFunction+0x867f93
+05 00000000`311bff30 00007fff`e6b0dbe7     ACE_Base64!NullExportFunction+0x10bbdc6
+06 00000000`311bff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`311bff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  27  Id: 907c.92b4 Suspend: 0 Teb: 00000000`002fc000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000000`31d3fd88 00007fff`e84d2e74     ntdll!NtDelayExecution+0x14
+01 00000000`31d3fd90 00007fff`e5c265d1     ntdll!RtlDelayExecution+0x34
+02 00000000`31d3fdc0 00007ffe`a2d8ee8f     KERNELBASE!SleepEx+0x91
+03 00000000`31d3fe50 00007ffe`a2e0bacc     ACE_Base64!NullExportFunction+0x2f7fadf
+04 00000000`31d3ff30 00007fff`e6b0dbe7     ACE_Base64!NullExportFunction+0x2ffc71c
+05 00000000`31d3ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+06 00000000`31d3ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  28  Id: 907c.55e8 Suspend: 0 Teb: 00000000`002fe000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000000`328bfe28 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`328bfe30 00007ffe`9fe5ab9c     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`328bfed0 00007ffe`9fe5af19     ACE_Base64!NullExportFunction+0x4b7ec
+03 00000000`328bff30 00007fff`e6b0dbe7     ACE_Base64!NullExportFunction+0x4bb69
+04 00000000`328bff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+05 00000000`328bff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  29  Id: 907c.1370 Suspend: 0 Teb: 00000000`00300000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000000`3343fe28 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`3343fe30 00007ffe`9fe5ab9c     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`3343fed0 00007ffe`9fe5af19     ACE_Base64!NullExportFunction+0x4b7ec
+03 00000000`3343ff30 00007fff`e6b0dbe7     ACE_Base64!NullExportFunction+0x4bb69
+04 00000000`3343ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+05 00000000`3343ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  30  Id: 907c.8780 Suspend: 0 Teb: 00000000`00302000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000000`34f8fe28 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`34f8fe30 00007ffe`9fe5ab9c     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`34f8fed0 00007ffe`9fe5af19     ACE_Base64!NullExportFunction+0x4b7ec
+03 00000000`34f8ff30 00007fff`e6b0dbe7     ACE_Base64!NullExportFunction+0x4bb69
+04 00000000`34f8ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+05 00000000`34f8ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  31  Id: 907c.20e0 Suspend: 0 Teb: 00000000`00304000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000000`35b0fe28 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`35b0fe30 00007ffe`9fe5ab9c     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`35b0fed0 00007ffe`9fe5af19     ACE_Base64!NullExportFunction+0x4b7ec
+03 00000000`35b0ff30 00007fff`e6b0dbe7     ACE_Base64!NullExportFunction+0x4bb69
+04 00000000`35b0ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+05 00000000`35b0ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  32  Id: 907c.5f18 Suspend: 0 Teb: 00000000`00306000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000000`3668fe28 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`3668fe30 00007ffe`9fe5ab9c     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`3668fed0 00007ffe`9fe5af19     ACE_Base64!NullExportFunction+0x4b7ec
+03 00000000`3668ff30 00007fff`e6b0dbe7     ACE_Base64!NullExportFunction+0x4bb69
+04 00000000`3668ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+05 00000000`3668ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  33  Id: 907c.7ec0 Suspend: 0 Teb: 00000000`00308000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000000`3720fe28 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`3720fe30 00007ffe`9fe5ab9c     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`3720fed0 00007ffe`9fe5af19     ACE_Base64!NullExportFunction+0x4b7ec
+03 00000000`3720ff30 00007fff`e6b0dbe7     ACE_Base64!NullExportFunction+0x4bb69
+04 00000000`3720ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+05 00000000`3720ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  34  Id: 907c.7e00 Suspend: 0 Teb: 00000000`0030a000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000000`37d8fe28 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`37d8fe30 00007ffe`9fe5ab9c     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`37d8fed0 00007ffe`9fe5af19     ACE_Base64!NullExportFunction+0x4b7ec
+03 00000000`37d8ff30 00007fff`e6b0dbe7     ACE_Base64!NullExportFunction+0x4bb69
+04 00000000`37d8ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+05 00000000`37d8ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  35  Id: 907c.7804 Suspend: 0 Teb: 00000000`0030c000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000000`3890fe28 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`3890fe30 00007ffe`9fe5ab9c     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`3890fed0 00007ffe`9fe5af19     ACE_Base64!NullExportFunction+0x4b7ec
+03 00000000`3890ff30 00007fff`e6b0dbe7     ACE_Base64!NullExportFunction+0x4bb69
+04 00000000`3890ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+05 00000000`3890ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  36  Id: 907c.236c Suspend: 0 Teb: 00000000`0030e000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000000`3948fdd8 00007fff`e84d2e74     ntdll!NtDelayExecution+0x14
+01 00000000`3948fde0 00007fff`e5c265d1     ntdll!RtlDelayExecution+0x34
+02 00000000`3948fe10 00007ffe`9fe3f500     KERNELBASE!SleepEx+0x91
+03 00000000`3948fea0 00007ffe`9fe3ea5e     ACE_Base64!NullExportFunction+0x30150
+04 00000000`3948ff30 00007fff`e6b0dbe7     ACE_Base64!NullExportFunction+0x2f6ae
+05 00000000`3948ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+06 00000000`3948ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  37  Id: 907c.7538 Suspend: 0 Teb: 00000000`00310000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000000`3a00fd38 00007fff`e84d2e74     ntdll!NtDelayExecution+0x14
+01 00000000`3a00fd40 00007fff`e5c265d1     ntdll!RtlDelayExecution+0x34
+02 00000000`3a00fd70 00007ffe`9fda2af4     KERNELBASE!SleepEx+0x91
+03 00000000`3a00fe00 00007ffe`9fc8f727     ACE_Base64+0x222af4
+04 00000000`3a00ff00 00007ffe`a0ecb176     ACE_Base64+0x10f727
+05 00000000`3a00ff30 00007fff`e6b0dbe7     ACE_Base64!NullExportFunction+0x10bbdc6
+06 00000000`3a00ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`3a00ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  38  Id: 907c.9e34 Suspend: 0 Teb: 00000000`00312000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000000`3ab8fd28 00007fff`e84d2e74     ntdll!NtDelayExecution+0x14
+01 00000000`3ab8fd30 00007fff`e5c265d1     ntdll!RtlDelayExecution+0x34
+02 00000000`3ab8fd60 00007ffe`9fc915eb     KERNELBASE!SleepEx+0x91
+03 00000000`3ab8fdf0 00007ffe`9fc8f727     ACE_Base64+0x1115eb
+04 00000000`3ab8ff00 00007ffe`a0ecb176     ACE_Base64+0x10f727
+05 00000000`3ab8ff30 00007fff`e6b0dbe7     ACE_Base64!NullExportFunction+0x10bbdc6
+06 00000000`3ab8ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`3ab8ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  39  Id: 907c.7310 Suspend: 0 Teb: 00000000`00320000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000000`3b95e7f8 00007fff`e845f594     ntdll!NtWaitForAlertByThreadId+0x14
+01 00000000`3b95e800 00007fff`e5bfd808     ntdll!RtlSleepConditionVariableSRW+0x1c4
+02 00000000`3b95e8a0 00007ffe`b55c9ce4     KERNELBASE!SleepConditionVariableSRW+0x38
+03 00000000`3b95e8e0 00007ffe`b55c9bd7     X6Game_Win64_ShippingBase+0x489ce4
+04 00000000`3b95e910 00007ffe`b52df443     X6Game_Win64_ShippingBase+0x489bd7
+05 00000000`3b95e990 00007ffe`b6615123     X6Game_Win64_ShippingBase+0x19f443
+06 00000000`3b95ea50 00007ffe`b66395f7     X6Game_Win64_ShippingBase+0x14d5123
+07 00000000`3b95fc90 00007ffe`b6aad630     X6Game_Win64_ShippingBase+0x14f95f7
+08 00000000`3b95fd40 00007fff`e6b0dbe7     X6Game_Win64_ShippingBase+0x196d630
+09 00000000`3b95ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+0a 00000000`3b95ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+# 40  Id: 907c.55dc Suspend: 0 Teb: 00000000`00322000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000000`3c4dbb38 00000000`00001030     ntdll!NtGetContextThread+0x14
+01 00000000`3c4dbb40 00000000`00000001     0x1030
+02 00000000`3c4dbb48 00007fff`e84d6a14     0x1
+03 00000000`3c4dbb50 00001110`00001000     ntdll!LdrResGetRCConfig+0x464
+04 00000000`3c4dbc70 00007fff`c93c7030     0x00001110`00001000
+05 00000000`3c4dbc78 00000000`00000409     dbgcore!g_DownlevelShlwapiL1CallsDesc <PERF> (dbgcore+0x37030)
+06 00000000`3c4dbc80 00007fff`c93c7048     0x409
+07 00000000`3c4dbc88 00007fff`00000004     dbgcore!g_DownlevelShlwapiL1CallsDesc <PERF> (dbgcore+0x37048)
+08 00000000`3c4dbc90 00000000`0003c000     0x00007fff`00000004
+09 00000000`3c4dbc98 00000000`e8570006     0x3c000
+0a 00000000`3c4dbca0 00007fff`c9390000     0xe8570006
+0b 00000000`3c4dbca8 00007fff`e5f7d97e     dbgcore!TraceLoggingRegister_EventRegister_2U <PERF> (dbgcore+0x0)
+0c 00000000`3c4dbcb0 00007fff`e5f7e628     ucrtbase!__crt_stdio_output::string_output_adapter<wchar_t>::write_string+0x4e
+0d 00000000`3c4dbcf0 00007fff`e5f7f5f9     ucrtbase!__crt_stdio_output::output_processor<wchar_t,__crt_stdio_output::string_output_adapter<wchar_t>,__crt_stdio_output::format_validation_base<wchar_t,__crt_stdio_output::string_output_adapter<wchar_t> > >::state_case_type+0x98
+0e 00000000`3c4dbd70 00007fff`e5f7fe3a     ucrtbase!__crt_stdio_output::output_processor<wchar_t,__crt_stdio_output::string_output_adapter<wchar_t>,__crt_stdio_output::format_validation_base<wchar_t,__crt_stdio_output::string_output_adapter<wchar_t> > >::process+0x169
+0f 00000000`3c4dbde0 00000000`00000000     ucrtbase!__stdio_common_vswprintf_s+0x1ba
+
+  41  Id: 907c.944c Suspend: 0 Teb: 00000000`00324000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000000`3ed0fe58 00007ffe`b6546479     0x3dc40da3
+01 00000000`3ed0fe60 00007ffe`b52e00f5     X6Game_Win64_ShippingBase+0x1406479
+02 00000000`3ed0fec0 00007ffe`b52debe9     X6Game_Win64_ShippingBase+0x1a00f5
+03 00000000`3ed0ff00 00007ffe`b5619370     X6Game_Win64_ShippingBase+0x19ebe9
+04 00000000`3ed0ff30 00007fff`e6b0dbe7     X6Game_Win64_ShippingBase+0x4d9370
+05 00000000`3ed0ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+06 00000000`3ed0ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  42  Id: 907c.34c8 Suspend: 0 Teb: 00000000`00328000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000000`40c3fdc8 00007ffe`a23ca262     ACE_Base64!NullExportFunction+0x915884
+01 00000000`40c3fdd0 00007ffe`a26b695e     ACE_Base64!NullExportFunction+0x25baeb2
+02 00000000`40c3fe90 00007ffe`a2517ada     ACE_Base64!NullExportFunction+0x28a75ae
+03 00000000`40c3fec0 00007ffe`a0677343     ACE_Base64!NullExportFunction+0x270872a
+04 00000000`40c3ff00 00007ffe`a0ecb176     ACE_Base64!NullExportFunction+0x867f93
+05 00000000`40c3ff30 00007fff`e6b0dbe7     ACE_Base64!NullExportFunction+0x10bbdc6
+06 00000000`40c3ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`40c3ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  43  Id: 907c.8d78 Suspend: 0 Teb: 00000000`0032a000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000000`41a2fdc8 00007ffe`a23ca262     ACE_Base64!NullExportFunction+0x915884
+01 00000000`41a2fdd0 00007ffe`a26b695e     ACE_Base64!NullExportFunction+0x25baeb2
+02 00000000`41a2fe90 00007ffe`a2517ada     ACE_Base64!NullExportFunction+0x28a75ae
+03 00000000`41a2fec0 00007ffe`a0677343     ACE_Base64!NullExportFunction+0x270872a
+04 00000000`41a2ff00 00007ffe`a0ecb176     ACE_Base64!NullExportFunction+0x867f93
+05 00000000`41a2ff30 00007fff`e6b0dbe7     ACE_Base64!NullExportFunction+0x10bbdc6
+06 00000000`41a2ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`41a2ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  44  Id: 907c.54f8 Suspend: 0 Teb: 00000000`0032c000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000000`4283fdc8 00007ffe`a23ca262     ACE_Base64!NullExportFunction+0x915884
+01 00000000`4283fdd0 00007ffe`a26b695e     ACE_Base64!NullExportFunction+0x25baeb2
+02 00000000`4283fe90 00007ffe`a2517ada     ACE_Base64!NullExportFunction+0x28a75ae
+03 00000000`4283fec0 00007ffe`a0677343     ACE_Base64!NullExportFunction+0x270872a
+04 00000000`4283ff00 00007ffe`a0ecb176     ACE_Base64!NullExportFunction+0x867f93
+05 00000000`4283ff30 00007fff`e6b0dbe7     ACE_Base64!NullExportFunction+0x10bbdc6
+06 00000000`4283ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`4283ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  45  Id: 907c.92d8 Suspend: 0 Teb: 00000000`0032e000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`443efdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`443efdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`443efe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`443efec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`443efef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`443eff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`443eff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`443eff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  46  Id: 907c.a184 Suspend: 0 Teb: 00000000`00332000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`4564fdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`4564fdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`4564fe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`4564fec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`4564fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`4564ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`4564ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`4564ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  47  Id: 907c.b9c Suspend: 0 Teb: 00000000`0037c000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`46d7fdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`46d7fdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`46d7fe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`46d7fec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`46d7fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`46d7ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`46d7ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`46d7ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  48  Id: 907c.77f8 Suspend: 0 Teb: 00000000`003ac000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`478ffdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`478ffdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`478ffe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`478ffec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`478ffef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`478fff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`478fff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`478fff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  49  Id: 907c.9608 Suspend: 0 Teb: 00000000`003ae000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`4847fdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`4847fdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`4847fe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`4847fec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`4847fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`4847ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`4847ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`4847ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  50  Id: 907c.a098 Suspend: 0 Teb: 00000000`003b0000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`48fffdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`48fffdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`48fffe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`48fffec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`48fffef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`48ffff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`48ffff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`48ffff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  51  Id: 907c.4294 Suspend: 0 Teb: 00000000`003b2000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`49b7fdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`49b7fdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`49b7fe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`49b7fec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`49b7fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`49b7ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`49b7ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`49b7ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  52  Id: 907c.8654 Suspend: 0 Teb: 00000000`003b4000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`4a6ffdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`4a6ffdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`4a6ffe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`4a6ffec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`4a6ffef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`4a6fff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`4a6fff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`4a6fff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  53  Id: 907c.8c48 Suspend: 0 Teb: 00000000`003b6000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`4b27fdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`4b27fdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`4b27fe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`4b27fec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`4b27fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`4b27ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`4b27ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`4b27ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  54  Id: 907c.31cc Suspend: 0 Teb: 00000000`003b8000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`4bdffdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`4bdffdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`4bdffe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`4bdffec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`4bdffef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`4bdfff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`4bdfff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`4bdfff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  55  Id: 907c.a0b4 Suspend: 0 Teb: 00000000`003bc000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`4c97fdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`4c97fdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`4c97fe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`4c97fec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`4c97fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`4c97ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`4c97ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`4c97ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  56  Id: 907c.5a64 Suspend: 0 Teb: 00000000`003c8000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`4d4ffdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`4d4ffdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`4d4ffe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`4d4ffec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`4d4ffef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`4d4fff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`4d4fff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`4d4fff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  57  Id: 907c.9890 Suspend: 0 Teb: 00000000`003ca000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`4e07fdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`4e07fdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`4e07fe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`4e07fec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`4e07fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`4e07ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`4e07ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`4e07ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  58  Id: 907c.4b70 Suspend: 0 Teb: 00000000`003cc000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`4ec8fdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`4ec8fdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`4ec8fe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`4ec8fec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`4ec8fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`4ec8ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`4ec8ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`4ec8ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  59  Id: 907c.9c58 Suspend: 0 Teb: 00000000`003ce000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`4f8dfdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`4f8dfdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`4f8dfe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`4f8dfec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`4f8dfef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`4f8dff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`4f8dff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`4f8dff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  60  Id: 907c.8b08 Suspend: 0 Teb: 00000000`003d0000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`5052fdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`5052fdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`5052fe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`5052fec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`5052fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`5052ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`5052ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`5052ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  61  Id: 907c.a028 Suspend: 0 Teb: 00000000`003d2000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`5118fdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`5118fdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`5118fe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`5118fec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`5118fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`5118ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`5118ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`5118ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  62  Id: 907c.90c0 Suspend: 0 Teb: 00000000`003d4000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`51dffdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`51dffdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`51dffe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`51dffec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`51dffef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`51dfff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`51dfff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`51dfff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  63  Id: 907c.a3d4 Suspend: 0 Teb: 00000000`003d6000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`52a4fdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`52a4fdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`52a4fe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`52a4fec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`52a4fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`52a4ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`52a4ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`52a4ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  64  Id: 907c.35e8 Suspend: 0 Teb: 00000000`003d8000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`5369fdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`5369fdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`5369fe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`5369fec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`5369fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`5369ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`5369ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`5369ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  65  Id: 907c.92e0 Suspend: 0 Teb: 00000000`003da000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`542efdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`542efdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`542efe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`542efec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`542efef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`542eff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`542eff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`542eff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  66  Id: 907c.a2f0 Suspend: 0 Teb: 00000000`003dc000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`54f4fdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`54f4fdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`54f4fe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`54f4fec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`54f4fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`54f4ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`54f4ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`54f4ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  67  Id: 907c.a1bc Suspend: 0 Teb: 00000000`003de000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`55b9fdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`55b9fdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`55b9fe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`55b9fec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`55b9fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`55b9ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`55b9ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`55b9ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  68  Id: 907c.91f8 Suspend: 0 Teb: 00000000`003e0000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`567efdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`567efdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`567efe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`567efec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`567efef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`567eff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`567eff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`567eff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  69  Id: 907c.5104 Suspend: 0 Teb: 00000000`003e2000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`5743fdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`5743fdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`5743fe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`5743fec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`5743fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`5743ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`5743ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`5743ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  70  Id: 907c.8888 Suspend: 0 Teb: 00000000`003e4000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`5808fdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`5808fdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`5808fe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`5808fec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`5808fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`5808ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`5808ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`5808ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  71  Id: 907c.6970 Suspend: 0 Teb: 00000000`003e6000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`58cffdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`58cffdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`58cffe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`58cffec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`58cffef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`58cfff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`58cfff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`58cfff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  72  Id: 907c.5224 Suspend: 0 Teb: 00000000`003e8000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`5994fdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`5994fdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`5994fe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`5994fec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`5994fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`5994ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`5994ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`5994ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  73  Id: 907c.8e00 Suspend: 0 Teb: 00000000`003ea000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`5a5afdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`5a5afdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`5a5afe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`5a5afec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`5a5afef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`5a5aff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`5a5aff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`5a5aff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  74  Id: 907c.6ac4 Suspend: 0 Teb: 00000000`003ec000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`5b1ffdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`5b1ffdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`5b1ffe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`5b1ffec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`5b1ffef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`5b1fff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`5b1fff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`5b1fff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  75  Id: 907c.5a3c Suspend: 0 Teb: 00000000`003ee000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`5c12fdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`5c12fdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`5c12fe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`5c12fec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`5c12fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`5c12ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`5c12ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`5c12ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  76  Id: 907c.a36c Suspend: 0 Teb: 00000000`003f0000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`5cd7fdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`5cd7fdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`5cd7fe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`5cd7fec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`5cd7fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`5cd7ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`5cd7ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`5cd7ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  77  Id: 907c.ba4 Suspend: 0 Teb: 00000000`003f2000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`5dc2fdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`5dc2fdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`5dc2fe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`5dc2fec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`5dc2fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`5dc2ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`5dc2ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`5dc2ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  78  Id: 907c.73cc Suspend: 0 Teb: 00000000`003f4000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`5ea8fdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`5ea8fdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`5ea8fe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`5ea8fec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`5ea8fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`5ea8ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`5ea8ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`5ea8ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  79  Id: 907c.7d50 Suspend: 0 Teb: 00000000`003f6000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`5f97fdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`5f97fdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`5f97fe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`5f97fec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`5f97fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`5f97ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`5f97ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`5f97ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  80  Id: 907c.9494 Suspend: 0 Teb: 00000000`003f8000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`6089fdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`6089fdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`6089fe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`6089fec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`6089fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`6089ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`6089ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`6089ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  81  Id: 907c.2f58 Suspend: 0 Teb: 00000000`003fa000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`616efdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`616efdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`616efe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`616efec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`616efef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`616eff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`616eff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`616eff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  82  Id: 907c.44b4 Suspend: 0 Teb: 00000000`003fc000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`6285fdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`6285fdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`6285fe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`6285fec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`6285fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`6285ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`6285ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`6285ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  83  Id: 907c.2b20 Suspend: 0 Teb: 00000000`003fe000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`634afdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`634afdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`634afe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`634afec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`634afef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`634aff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`634aff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`634aff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  84  Id: 907c.20e8 Suspend: 0 Teb: 00000000`00200000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`6411fdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`6411fdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`6411fe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`6411fec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`6411fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`6411ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`6411ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`6411ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  85  Id: 907c.7e78 Suspend: 0 Teb: 00000000`00202000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`64d6fdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`64d6fdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`64d6fe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`64d6fec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`64d6fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`64d6ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`64d6ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`64d6ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  86  Id: 907c.4b40 Suspend: 0 Teb: 00000000`00204000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`659dfdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`659dfdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`659dfe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`659dfec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`659dfef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`659dff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`659dff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`659dff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  87  Id: 907c.6a84 Suspend: 0 Teb: 00000000`00206000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`6665fdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`6665fdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`6665fe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`6665fec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`6665fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`6665ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`6665ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`6665ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  88  Id: 907c.a0e4 Suspend: 0 Teb: 00000000`00208000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`6741fdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`6741fdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`6741fe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`6741fec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`6741fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`6741ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`6741ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`6741ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  89  Id: 907c.8cd4 Suspend: 0 Teb: 00000000`0020a000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`6806fdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`6806fdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`6806fe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`6806fec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`6806fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`6806ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`6806ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`6806ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  90  Id: 907c.519c Suspend: 0 Teb: 00000000`0020c000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`68cffdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`68cffdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`68cffe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`68cffec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`68cffef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`68cfff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`68cfff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`68cfff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  91  Id: 907c.11e8 Suspend: 0 Teb: 00000000`0020e000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`6995fdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`6995fdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`6995fe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`6995fec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`6995fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`6995ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`6995ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`6995ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  92  Id: 907c.2ac0 Suspend: 0 Teb: 00000000`00210000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`6a5cfdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`6a5cfdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`6a5cfe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`6a5cfec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`6a5cfef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`6a5cff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`6a5cff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`6a5cff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  93  Id: 907c.988c Suspend: 0 Teb: 00000000`00212000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`6b21fdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`6b21fdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`6b21fe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`6b21fec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`6b21fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`6b21ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`6b21ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`6b21ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  94  Id: 907c.43c4 Suspend: 0 Teb: 00000000`00214000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`6be9fdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`6be9fdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`6be9fe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`6be9fec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`6be9fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`6be9ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`6be9ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`6be9ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  95  Id: 907c.a0a0 Suspend: 0 Teb: 00000000`00216000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`6caefdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`6caefdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`6caefe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`6caefec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`6caefef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`6caeff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`6caeff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`6caeff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  96  Id: 907c.7e1c Suspend: 0 Teb: 00000000`00218000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`6d74fdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`6d74fdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`6d74fe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`6d74fec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`6d74fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`6d74ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`6d74ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`6d74ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  97  Id: 907c.9d60 Suspend: 0 Teb: 00000000`0021a000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`6e3bfdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`6e3bfdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`6e3bfe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`6e3bfec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`6e3bfef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`6e3bff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`6e3bff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`6e3bff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  98  Id: 907c.9fec Suspend: 0 Teb: 00000000`0021c000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`6f00fdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`6f00fdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`6f00fe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`6f00fec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`6f00fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`6f00ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`6f00ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`6f00ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+  99  Id: 907c.8038 Suspend: 0 Teb: 00000000`0021e000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`6fd1fdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`6fd1fdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`6fd1fe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`6fd1fec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`6fd1fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`6fd1ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`6fd1ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`6fd1ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 100  Id: 907c.75a8 Suspend: 0 Teb: 00000000`00220000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`7097fdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`7097fdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`7097fe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`7097fec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`7097fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`7097ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`7097ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`7097ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 101  Id: 907c.7f90 Suspend: 0 Teb: 00000000`00222000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`715dfdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`715dfdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`715dfe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`715dfec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`715dfef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`715dff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`715dff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`715dff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 102  Id: 907c.9980 Suspend: 0 Teb: 00000000`00224000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`7226fdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`7226fdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`7226fe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`7226fec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`7226fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`7226ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`7226ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`7226ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 103  Id: 907c.a340 Suspend: 0 Teb: 00000000`00226000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`72ebfdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`72ebfdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`72ebfe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`72ebfec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`72ebfef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`72ebff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`72ebff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`72ebff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 104  Id: 907c.8ee0 Suspend: 0 Teb: 00000000`00228000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`73b0fdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`73b0fdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`73b0fe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`73b0fec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`73b0fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`73b0ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`73b0ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`73b0ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 105  Id: 907c.55e4 Suspend: 0 Teb: 00000000`0022a000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`7477fdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`7477fdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`7477fe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`7477fec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`7477fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`7477ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`7477ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`7477ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 106  Id: 907c.575c Suspend: 0 Teb: 00000000`0022c000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`75a9fdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`75a9fdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`75a9fe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`75a9fec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`75a9fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`75a9ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`75a9ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`75a9ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 107  Id: 907c.9774 Suspend: 0 Teb: 00000000`0022e000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000000`7803fe58 00007fff`e84d2e74     ntdll!NtDelayExecution+0x14
+01 00000000`7803fe60 00007fff`e5c265d1     ntdll!RtlDelayExecution+0x34
+02 00000000`7803fe90 00000000`3aba3472     KERNELBASE!SleepEx+0x91
+03 00000000`7803ff20 00000000`00000000     0x3aba3472
+
+ 108  Id: 907c.84c8 Suspend: 0 Teb: 00000000`00230000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000000`78bbfe68 00007fff`e84d2e74     ntdll!NtDelayExecution+0x14
+01 00000000`78bbfe70 00007fff`e5c265d1     ntdll!RtlDelayExecution+0x34
+02 00000000`78bbfea0 00000000`3aba34aa     KERNELBASE!SleepEx+0x91
+03 00000000`78bbff30 00000000`00000000     0x3aba34aa
+
+ 109  Id: 907c.548c Suspend: 0 Teb: 00000000`00232000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`7bf1fdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`7bf1fdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`7bf1fe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`7bf1fec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`7bf1fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`7bf1ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`7bf1ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`7bf1ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 110  Id: 907c.745c Suspend: 0 Teb: 00000000`00234000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`7ca9fdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`7ca9fdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`7ca9fe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`7ca9fec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`7ca9fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`7ca9ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`7ca9ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`7ca9ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 111  Id: 907c.9384 Suspend: 0 Teb: 00000000`00236000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`7d61fdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`7d61fdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`7d61fe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`7d61fec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`7d61fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`7d61ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`7d61ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`7d61ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 112  Id: 907c.1218 Suspend: 0 Teb: 00000000`00238000 Unfrozen "FChunkCacheWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`7e19fdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`7e19fdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`7e19fe70 00000001`421cb475     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`7e19fec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x1216a5
+04 00000000`7e19fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`7e19ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`7e19ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`7e19ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 113  Id: 907c.6a88 Suspend: 0 Teb: 00000000`00240000 Unfrozen "Foreground Worker #0"
+ # Child-SP          RetAddr               Call Site
+00 00000000`7faefc88 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`7faefc90 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`7faefd30 00000001`4136b28c     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`7faefd80 00000001`41380cc5     X6Game_Win64_Shipping!ffxGetDeviceDX12+0x670c
+04 00000000`7faefdd0 00000001`4136a900     X6Game_Win64_Shipping!ffxFsr2ResourceIsNull+0x12265
+05 00000000`7faefe80 00000001`413efe64     X6Game_Win64_Shipping!ffxGetDeviceDX12+0x5d80
+06 00000000`7faefec0 00000001`41553697     X6Game_Win64_Shipping!lua_gethook+0x27ca4
+07 00000000`7faefef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+08 00000000`7faeff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+09 00000000`7faeff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+0a 00000000`7faeff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 114  Id: 907c.8cb8 Suspend: 0 Teb: 00000000`00242000 Unfrozen "Foreground Worker #1"
+ # Child-SP          RetAddr               Call Site
+00 00000000`80b6fc88 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`80b6fc90 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`80b6fd30 00000001`4136b28c     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`80b6fd80 00000001`41380cc5     X6Game_Win64_Shipping!ffxGetDeviceDX12+0x670c
+04 00000000`80b6fdd0 00000001`4136a900     X6Game_Win64_Shipping!ffxFsr2ResourceIsNull+0x12265
+05 00000000`80b6fe80 00000001`413efe64     X6Game_Win64_Shipping!ffxGetDeviceDX12+0x5d80
+06 00000000`80b6fec0 00000001`41553697     X6Game_Win64_Shipping!lua_gethook+0x27ca4
+07 00000000`80b6fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+08 00000000`80b6ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+09 00000000`80b6ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+0a 00000000`80b6ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 115  Id: 907c.210 Suspend: 0 Teb: 00000000`00244000 Unfrozen "Background Worker #2"
+ # Child-SP          RetAddr               Call Site
+00 00000000`816efc88 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`816efc90 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`816efd30 00000001`4136b28c     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`816efd80 00000001`41380cc5     X6Game_Win64_Shipping!ffxGetDeviceDX12+0x670c
+04 00000000`816efdd0 00000001`4136a900     X6Game_Win64_Shipping!ffxFsr2ResourceIsNull+0x12265
+05 00000000`816efe80 00000001`413efe64     X6Game_Win64_Shipping!ffxGetDeviceDX12+0x5d80
+06 00000000`816efec0 00000001`41553697     X6Game_Win64_Shipping!lua_gethook+0x27ca4
+07 00000000`816efef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+08 00000000`816eff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+09 00000000`816eff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+0a 00000000`816eff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 116  Id: 907c.a08c Suspend: 0 Teb: 00000000`00246000 Unfrozen "Background Worker #3"
+ # Child-SP          RetAddr               Call Site
+00 00000000`8226fc88 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`8226fc90 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`8226fd30 00000001`4136b28c     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`8226fd80 00000001`41380cc5     X6Game_Win64_Shipping!ffxGetDeviceDX12+0x670c
+04 00000000`8226fdd0 00000001`4136a900     X6Game_Win64_Shipping!ffxFsr2ResourceIsNull+0x12265
+05 00000000`8226fe80 00000001`413efe64     X6Game_Win64_Shipping!ffxGetDeviceDX12+0x5d80
+06 00000000`8226fec0 00000001`41553697     X6Game_Win64_Shipping!lua_gethook+0x27ca4
+07 00000000`8226fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+08 00000000`8226ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+09 00000000`8226ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+0a 00000000`8226ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 117  Id: 907c.925c Suspend: 0 Teb: 00000000`00248000 Unfrozen "Background Worker #4"
+ # Child-SP          RetAddr               Call Site
+00 00000000`82defc88 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`82defc90 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`82defd30 00000001`4136b28c     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`82defd80 00000001`41380cc5     X6Game_Win64_Shipping!ffxGetDeviceDX12+0x670c
+04 00000000`82defdd0 00000001`4136a900     X6Game_Win64_Shipping!ffxFsr2ResourceIsNull+0x12265
+05 00000000`82defe80 00000001`413efe64     X6Game_Win64_Shipping!ffxGetDeviceDX12+0x5d80
+06 00000000`82defec0 00000001`41553697     X6Game_Win64_Shipping!lua_gethook+0x27ca4
+07 00000000`82defef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+08 00000000`82deff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+09 00000000`82deff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+0a 00000000`82deff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 118  Id: 907c.1ad4 Suspend: 0 Teb: 00000000`0024a000 Unfrozen "Background Worker #5"
+ # Child-SP          RetAddr               Call Site
+00 00000000`8396fc88 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`8396fc90 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`8396fd30 00000001`4136b28c     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`8396fd80 00000001`41380cc5     X6Game_Win64_Shipping!ffxGetDeviceDX12+0x670c
+04 00000000`8396fdd0 00000001`4136a900     X6Game_Win64_Shipping!ffxFsr2ResourceIsNull+0x12265
+05 00000000`8396fe80 00000001`413efe64     X6Game_Win64_Shipping!ffxGetDeviceDX12+0x5d80
+06 00000000`8396fec0 00000001`41553697     X6Game_Win64_Shipping!lua_gethook+0x27ca4
+07 00000000`8396fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+08 00000000`8396ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+09 00000000`8396ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+0a 00000000`8396ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 119  Id: 907c.8578 Suspend: 0 Teb: 00000000`0024c000 Unfrozen "Background Worker #6"
+ # Child-SP          RetAddr               Call Site
+00 00000000`844efc88 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`844efc90 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`844efd30 00000001`4136b28c     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`844efd80 00000001`41380cc5     X6Game_Win64_Shipping!ffxGetDeviceDX12+0x670c
+04 00000000`844efdd0 00000001`4136a900     X6Game_Win64_Shipping!ffxFsr2ResourceIsNull+0x12265
+05 00000000`844efe80 00000001`413efe64     X6Game_Win64_Shipping!ffxGetDeviceDX12+0x5d80
+06 00000000`844efec0 00000001`41553697     X6Game_Win64_Shipping!lua_gethook+0x27ca4
+07 00000000`844efef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+08 00000000`844eff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+09 00000000`844eff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+0a 00000000`844eff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 120  Id: 907c.9d08 Suspend: 0 Teb: 00000000`0024e000 Unfrozen "Background Worker #7"
+ # Child-SP          RetAddr               Call Site
+00 00000000`8506fc88 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`8506fc90 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`8506fd30 00000001`4136b28c     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`8506fd80 00000001`41380cc5     X6Game_Win64_Shipping!ffxGetDeviceDX12+0x670c
+04 00000000`8506fdd0 00000001`4136a900     X6Game_Win64_Shipping!ffxFsr2ResourceIsNull+0x12265
+05 00000000`8506fe80 00000001`413efe64     X6Game_Win64_Shipping!ffxGetDeviceDX12+0x5d80
+06 00000000`8506fec0 00000001`41553697     X6Game_Win64_Shipping!lua_gethook+0x27ca4
+07 00000000`8506fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+08 00000000`8506ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+09 00000000`8506ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+0a 00000000`8506ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 121  Id: 907c.9814 Suspend: 0 Teb: 00000000`00250000 Unfrozen "Background Worker #8"
+ # Child-SP          RetAddr               Call Site
+00 00000000`85befc88 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`85befc90 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`85befd30 00000001`4136b28c     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`85befd80 00000001`41380cc5     X6Game_Win64_Shipping!ffxGetDeviceDX12+0x670c
+04 00000000`85befdd0 00000001`4136a900     X6Game_Win64_Shipping!ffxFsr2ResourceIsNull+0x12265
+05 00000000`85befe80 00000001`413efe64     X6Game_Win64_Shipping!ffxGetDeviceDX12+0x5d80
+06 00000000`85befec0 00000001`41553697     X6Game_Win64_Shipping!lua_gethook+0x27ca4
+07 00000000`85befef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+08 00000000`85beff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+09 00000000`85beff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+0a 00000000`85beff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 122  Id: 907c.79cc Suspend: 0 Teb: 00000000`00252000 Unfrozen "Background Worker #9"
+ # Child-SP          RetAddr               Call Site
+00 00000000`8676fc88 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`8676fc90 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`8676fd30 00000001`4136b28c     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`8676fd80 00000001`41380cc5     X6Game_Win64_Shipping!ffxGetDeviceDX12+0x670c
+04 00000000`8676fdd0 00000001`4136a900     X6Game_Win64_Shipping!ffxFsr2ResourceIsNull+0x12265
+05 00000000`8676fe80 00000001`413efe64     X6Game_Win64_Shipping!ffxGetDeviceDX12+0x5d80
+06 00000000`8676fec0 00000001`41553697     X6Game_Win64_Shipping!lua_gethook+0x27ca4
+07 00000000`8676fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+08 00000000`8676ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+09 00000000`8676ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+0a 00000000`8676ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 123  Id: 907c.725c Suspend: 0 Teb: 00000000`00254000 Unfrozen "Background Worker #10"
+ # Child-SP          RetAddr               Call Site
+00 00000000`872efc88 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`872efc90 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`872efd30 00000001`4136b28c     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`872efd80 00000001`41380cc5     X6Game_Win64_Shipping!ffxGetDeviceDX12+0x670c
+04 00000000`872efdd0 00000001`4136a900     X6Game_Win64_Shipping!ffxFsr2ResourceIsNull+0x12265
+05 00000000`872efe80 00000001`413efe64     X6Game_Win64_Shipping!ffxGetDeviceDX12+0x5d80
+06 00000000`872efec0 00000001`41553697     X6Game_Win64_Shipping!lua_gethook+0x27ca4
+07 00000000`872efef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+08 00000000`872eff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+09 00000000`872eff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+0a 00000000`872eff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 124  Id: 907c.8670 Suspend: 0 Teb: 00000000`00256000 Unfrozen "Background Worker #11"
+ # Child-SP          RetAddr               Call Site
+00 00000000`87e6fc88 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`87e6fc90 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`87e6fd30 00000001`4136b28c     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`87e6fd80 00000001`41380cc5     X6Game_Win64_Shipping!ffxGetDeviceDX12+0x670c
+04 00000000`87e6fdd0 00000001`4136a900     X6Game_Win64_Shipping!ffxFsr2ResourceIsNull+0x12265
+05 00000000`87e6fe80 00000001`413efe64     X6Game_Win64_Shipping!ffxGetDeviceDX12+0x5d80
+06 00000000`87e6fec0 00000001`41553697     X6Game_Win64_Shipping!lua_gethook+0x27ca4
+07 00000000`87e6fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+08 00000000`87e6ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+09 00000000`87e6ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+0a 00000000`87e6ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 125  Id: 907c.a2c4 Suspend: 0 Teb: 00000000`00258000 Unfrozen "Background Worker #12"
+ # Child-SP          RetAddr               Call Site
+00 00000000`889efc88 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`889efc90 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`889efd30 00000001`4136b28c     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`889efd80 00000001`41380cc5     X6Game_Win64_Shipping!ffxGetDeviceDX12+0x670c
+04 00000000`889efdd0 00000001`4136a900     X6Game_Win64_Shipping!ffxFsr2ResourceIsNull+0x12265
+05 00000000`889efe80 00000001`413efe64     X6Game_Win64_Shipping!ffxGetDeviceDX12+0x5d80
+06 00000000`889efec0 00000001`41553697     X6Game_Win64_Shipping!lua_gethook+0x27ca4
+07 00000000`889efef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+08 00000000`889eff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+09 00000000`889eff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+0a 00000000`889eff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 126  Id: 907c.91a8 Suspend: 0 Teb: 00000000`0025a000 Unfrozen "Background Worker #13"
+ # Child-SP          RetAddr               Call Site
+00 00000000`8956fc88 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`8956fc90 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`8956fd30 00000001`4136b28c     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`8956fd80 00000001`41380cc5     X6Game_Win64_Shipping!ffxGetDeviceDX12+0x670c
+04 00000000`8956fdd0 00000001`4136a900     X6Game_Win64_Shipping!ffxFsr2ResourceIsNull+0x12265
+05 00000000`8956fe80 00000001`413efe64     X6Game_Win64_Shipping!ffxGetDeviceDX12+0x5d80
+06 00000000`8956fec0 00000001`41553697     X6Game_Win64_Shipping!lua_gethook+0x27ca4
+07 00000000`8956fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+08 00000000`8956ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+09 00000000`8956ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+0a 00000000`8956ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 127  Id: 907c.9cb8 Suspend: 0 Teb: 00000000`0025c000 Unfrozen "Background Worker #14"
+ # Child-SP          RetAddr               Call Site
+00 00000000`8a0efc88 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`8a0efc90 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`8a0efd30 00000001`4136b28c     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`8a0efd80 00000001`41380cc5     X6Game_Win64_Shipping!ffxGetDeviceDX12+0x670c
+04 00000000`8a0efdd0 00000001`4136a900     X6Game_Win64_Shipping!ffxFsr2ResourceIsNull+0x12265
+05 00000000`8a0efe80 00000001`413efe64     X6Game_Win64_Shipping!ffxGetDeviceDX12+0x5d80
+06 00000000`8a0efec0 00000001`41553697     X6Game_Win64_Shipping!lua_gethook+0x27ca4
+07 00000000`8a0efef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+08 00000000`8a0eff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+09 00000000`8a0eff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+0a 00000000`8a0eff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 128  Id: 907c.4fac Suspend: 0 Teb: 00000000`0025e000 Unfrozen "Background Worker #15"
+ # Child-SP          RetAddr               Call Site
+00 00000000`8ac6fc88 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`8ac6fc90 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`8ac6fd30 00000001`4136b28c     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`8ac6fd80 00000001`41380cc5     X6Game_Win64_Shipping!ffxGetDeviceDX12+0x670c
+04 00000000`8ac6fdd0 00000001`4136a900     X6Game_Win64_Shipping!ffxFsr2ResourceIsNull+0x12265
+05 00000000`8ac6fe80 00000001`413efe64     X6Game_Win64_Shipping!ffxGetDeviceDX12+0x5d80
+06 00000000`8ac6fec0 00000001`41553697     X6Game_Win64_Shipping!lua_gethook+0x27ca4
+07 00000000`8ac6fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+08 00000000`8ac6ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+09 00000000`8ac6ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+0a 00000000`8ac6ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 129  Id: 907c.99e0 Suspend: 0 Teb: 00000000`00260000 Unfrozen "Background Worker #16"
+ # Child-SP          RetAddr               Call Site
+00 00000000`8b7efc88 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`8b7efc90 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`8b7efd30 00000001`4136b28c     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`8b7efd80 00000001`41380cc5     X6Game_Win64_Shipping!ffxGetDeviceDX12+0x670c
+04 00000000`8b7efdd0 00000001`4136a900     X6Game_Win64_Shipping!ffxFsr2ResourceIsNull+0x12265
+05 00000000`8b7efe80 00000001`413efe64     X6Game_Win64_Shipping!ffxGetDeviceDX12+0x5d80
+06 00000000`8b7efec0 00000001`41553697     X6Game_Win64_Shipping!lua_gethook+0x27ca4
+07 00000000`8b7efef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+08 00000000`8b7eff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+09 00000000`8b7eff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+0a 00000000`8b7eff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 130  Id: 907c.9f88 Suspend: 0 Teb: 00000000`00262000 Unfrozen "Background Worker #17"
+ # Child-SP          RetAddr               Call Site
+00 00000000`8c36fc88 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`8c36fc90 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`8c36fd30 00000001`4136b28c     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`8c36fd80 00000001`41380cc5     X6Game_Win64_Shipping!ffxGetDeviceDX12+0x670c
+04 00000000`8c36fdd0 00000001`4136a900     X6Game_Win64_Shipping!ffxFsr2ResourceIsNull+0x12265
+05 00000000`8c36fe80 00000001`413efe64     X6Game_Win64_Shipping!ffxGetDeviceDX12+0x5d80
+06 00000000`8c36fec0 00000001`41553697     X6Game_Win64_Shipping!lua_gethook+0x27ca4
+07 00000000`8c36fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+08 00000000`8c36ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+09 00000000`8c36ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+0a 00000000`8c36ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 131  Id: 907c.d28 Suspend: 0 Teb: 00000000`00264000 Unfrozen "Background Worker #18"
+ # Child-SP          RetAddr               Call Site
+00 00000000`8ceefc88 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`8ceefc90 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`8ceefd30 00000001`4136b28c     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`8ceefd80 00000001`41380cc5     X6Game_Win64_Shipping!ffxGetDeviceDX12+0x670c
+04 00000000`8ceefdd0 00000001`4136a900     X6Game_Win64_Shipping!ffxFsr2ResourceIsNull+0x12265
+05 00000000`8ceefe80 00000001`413efe64     X6Game_Win64_Shipping!ffxGetDeviceDX12+0x5d80
+06 00000000`8ceefec0 00000001`41553697     X6Game_Win64_Shipping!lua_gethook+0x27ca4
+07 00000000`8ceefef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+08 00000000`8ceeff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+09 00000000`8ceeff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+0a 00000000`8ceeff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 132  Id: 907c.88c0 Suspend: 0 Teb: 00000000`00266000 Unfrozen "Background Worker #19"
+ # Child-SP          RetAddr               Call Site
+00 00000000`8da6fc88 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`8da6fc90 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`8da6fd30 00000001`4136b28c     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`8da6fd80 00000001`41380cc5     X6Game_Win64_Shipping!ffxGetDeviceDX12+0x670c
+04 00000000`8da6fdd0 00000001`4136a900     X6Game_Win64_Shipping!ffxFsr2ResourceIsNull+0x12265
+05 00000000`8da6fe80 00000001`413efe64     X6Game_Win64_Shipping!ffxGetDeviceDX12+0x5d80
+06 00000000`8da6fec0 00000001`41553697     X6Game_Win64_Shipping!lua_gethook+0x27ca4
+07 00000000`8da6fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+08 00000000`8da6ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+09 00000000`8da6ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+0a 00000000`8da6ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 133  Id: 907c.7790 Suspend: 0 Teb: 00000000`00268000 Unfrozen "Background Worker #20"
+ # Child-SP          RetAddr               Call Site
+00 00000000`8e5efc88 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`8e5efc90 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`8e5efd30 00000001`4136b28c     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`8e5efd80 00000001`41380cc5     X6Game_Win64_Shipping!ffxGetDeviceDX12+0x670c
+04 00000000`8e5efdd0 00000001`4136a900     X6Game_Win64_Shipping!ffxFsr2ResourceIsNull+0x12265
+05 00000000`8e5efe80 00000001`413efe64     X6Game_Win64_Shipping!ffxGetDeviceDX12+0x5d80
+06 00000000`8e5efec0 00000001`41553697     X6Game_Win64_Shipping!lua_gethook+0x27ca4
+07 00000000`8e5efef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+08 00000000`8e5eff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+09 00000000`8e5eff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+0a 00000000`8e5eff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 134  Id: 907c.51a0 Suspend: 0 Teb: 00000000`0026a000 Unfrozen "Background Worker #21"
+ # Child-SP          RetAddr               Call Site
+00 00000000`8f16fc88 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`8f16fc90 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`8f16fd30 00000001`4136b28c     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`8f16fd80 00000001`41380cc5     X6Game_Win64_Shipping!ffxGetDeviceDX12+0x670c
+04 00000000`8f16fdd0 00000001`4136a900     X6Game_Win64_Shipping!ffxFsr2ResourceIsNull+0x12265
+05 00000000`8f16fe80 00000001`413efe64     X6Game_Win64_Shipping!ffxGetDeviceDX12+0x5d80
+06 00000000`8f16fec0 00000001`41553697     X6Game_Win64_Shipping!lua_gethook+0x27ca4
+07 00000000`8f16fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+08 00000000`8f16ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+09 00000000`8f16ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+0a 00000000`8f16ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 135  Id: 907c.9c28 Suspend: 0 Teb: 00000000`0026c000 Unfrozen "BackgroundThreadPool #0"
+ # Child-SP          RetAddr               Call Site
+00 00000000`3d79fdb8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`3d79fdc0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`3d79fe60 00000001`413efc6e     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`3d79feb0 00000001`41553697     X6Game_Win64_Shipping!lua_gethook+0x27aae
+04 00000000`3d79fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`3d79ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`3d79ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`3d79ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 136  Id: 907c.7288 Suspend: 0 Teb: 00000000`0026e000 Unfrozen "BackgroundThreadPool #1"
+ # Child-SP          RetAddr               Call Site
+00 00000000`3d7bfdb8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`3d7bfdc0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`3d7bfe60 00000001`413efc6e     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`3d7bfeb0 00000001`41553697     X6Game_Win64_Shipping!lua_gethook+0x27aae
+04 00000000`3d7bfef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`3d7bff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`3d7bff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`3d7bff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 137  Id: 907c.7904 Suspend: 0 Teb: 00000000`00272000 Unfrozen "FAsyncWriter_X6Game"
+ # Child-SP          RetAddr               Call Site
+00 00000000`9091fdb8 00007fff`e84d2e74     ntdll!NtDelayExecution+0x14
+01 00000000`9091fdc0 00007fff`e5c265d1     ntdll!RtlDelayExecution+0x34
+02 00000000`9091fdf0 00000001`414e2d6c     KERNELBASE!SleepEx+0x91
+03 00000000`9091fe80 00000001`41553697     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0xc383c
+04 00000000`9091fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`9091ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`9091ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`9091ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 138  Id: 907c.2560 Suspend: 0 Teb: 00000000`00284000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000000`9340f608 00007ffe`a23c9d49     ACE_Base64!NullExportFunction+0x9158a3
+01 00000000`9340f610 00007ffe`a073b11d     ACE_Base64!NullExportFunction+0x25ba999
+02 00000000`9340f6b0 00007ffe`a23da83d     ACE_Base64!NullExportFunction+0x92bd6d
+03 00000000`9340fbe0 00007ffe`a073b84d     ACE_Base64!NullExportFunction+0x25cb48d
+04 00000000`9340fd10 00007ffe`a073dd29     ACE_Base64!NullExportFunction+0x92c49d
+05 00000000`9340fe20 00007ffe`a073d437     ACE_Base64!NullExportFunction+0x92e979
+06 00000000`9340fec0 00007ffe`a0677343     ACE_Base64!NullExportFunction+0x92e087
+07 00000000`9340ff00 00007ffe`a0ecb176     ACE_Base64!NullExportFunction+0x867f93
+08 00000000`9340ff30 00007fff`e6b0dbe7     ACE_Base64!NullExportFunction+0x10bbdc6
+09 00000000`9340ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+0a 00000000`9340ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 139  Id: 907c.a318 Suspend: 0 Teb: 00000000`00296000 Unfrozen "FMediaTicker"
+ # Child-SP          RetAddr               Call Site
+00 00000000`93f8fdb8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`93f8fdc0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`93f8fe60 00000001`43834d3c     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`93f8feb0 00000001`41553697     X6Game_Win64_Shipping!lua_gethookmask+0x156fc
+04 00000000`93f8fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`93f8ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`93f8ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`93f8ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 140  Id: 907c.3458 Suspend: 0 Teb: 00000000`00298000 Unfrozen "HttpManagerThread"
+ # Child-SP          RetAddr               Call Site
+00 00000000`07d1fd58 00007fff`e84d2e74     ntdll!NtDelayExecution+0x14
+01 00000000`07d1fd60 00007fff`e5c265d1     ntdll!RtlDelayExecution+0x34
+02 00000000`07d1fd90 00007ffe`9f411c2b     KERNELBASE!SleepEx+0x91
+03 00000000`07d1fe20 00007ffe`9f3f3877     EOSSDK_Win64_Shipping!EOS_UserInfo_BestDisplayName_Release+0xe12fb
+04 00000000`07d1fed0 00007ffe`9f3f373c     EOSSDK_Win64_Shipping!EOS_UserInfo_BestDisplayName_Release+0xc2f47
+05 00000000`07d1ff00 00007fff`e6b0dbe7     EOSSDK_Win64_Shipping!EOS_UserInfo_BestDisplayName_Release+0xc2e0c
+06 00000000`07d1ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`07d1ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 141  Id: 907c.4cfc Suspend: 0 Teb: 00000000`0029a000 Unfrozen "HttpManagerThread"
+ # Child-SP          RetAddr               Call Site
+00 00000000`07d4fcf8 00007fff`e84d2e74     ntdll!NtDelayExecution+0x14
+01 00000000`07d4fd00 00007fff`e5c265d1     ntdll!RtlDelayExecution+0x34
+02 00000000`07d4fd30 00000001`418d5429     KERNELBASE!SleepEx+0x91
+03 00000000`07d4fdc0 00000001`41553697     X6Game_Win64_Shipping!nsvgRasterizeFull+0xd1289
+04 00000000`07d4fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`07d4ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`07d4ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`07d4ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 142  Id: 907c.980c Suspend: 0 Teb: 00000000`0029c000 Unfrozen "OnlineAsyncTaskThreadNull DefaultInstance(1)"
+ # Child-SP          RetAddr               Call Site
+00 00000000`07d7fdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`07d7fdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`07d7fe70 00000001`45988cd6     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`07d7fec0 00000001`41553697     X6Game_Win64_Shipping!AK::WriteBytesCount::SetCount+0x7fed56
+04 00000000`07d7fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`07d7ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`07d7ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`07d7ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 143  Id: 907c.b5c Suspend: 0 Teb: 00000000`0029e000 Unfrozen "FVGUDSConnect1"
+ # Child-SP          RetAddr               Call Site
+00 00000000`07e2fd98 00007fff`e84d2e74     ntdll!NtDelayExecution+0x14
+01 00000000`07e2fda0 00007fff`e5c265d1     ntdll!RtlDelayExecution+0x34
+02 00000000`07e2fdd0 00000001`4155455c     KERNELBASE!SleepEx+0x91
+03 00000000`07e2fe60 00000001`4751d5b3     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x13502c
+04 00000000`07e2feb0 00000001`41553697     X6Game_Win64_Shipping!luaopen_lanes_embedded+0x15513
+05 00000000`07e2fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+06 00000000`07e2ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+07 00000000`07e2ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+08 00000000`07e2ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 144  Id: 907c.77a4 Suspend: 0 Teb: 00000000`002a4000 Unfrozen "OutputDeviceRedirector"
+ # Child-SP          RetAddr               Call Site
+00 00000000`94b0fc28 00007fff`e841b6b5     ntdll!NtWaitForAlertByThreadId+0x14
+01 00000000`94b0fc30 00007fff`e5c94cb8     ntdll!RtlWaitOnAddress+0x215
+02 00000000`94b0fcb0 00000001`4148d34c     KERNELBASE!WaitOnAddress+0x38
+03 00000000`94b0fcf0 00000001`4137f88f     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x6de1c
+04 00000000`94b0fd60 00000001`4137f6cc     X6Game_Win64_Shipping!ffxFsr2ResourceIsNull+0x10e2f
+05 00000000`94b0fdd0 00000001`414e6236     X6Game_Win64_Shipping!ffxFsr2ResourceIsNull+0x10c6c
+06 00000000`94b0fe10 00000001`413efe64     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0xc6d06
+07 00000000`94b0fec0 00000001`41553697     X6Game_Win64_Shipping!lua_gethook+0x27ca4
+08 00000000`94b0fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+09 00000000`94b0ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+0a 00000000`94b0ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+0b 00000000`94b0ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 145  Id: 907c.a240 Suspend: 0 Teb: 00000000`002ae000 Unfrozen "IOThreadPool #0"
+ # Child-SP          RetAddr               Call Site
+00 00000000`086cfdb8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`086cfdc0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`086cfe60 00000001`413efc6e     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`086cfeb0 00000001`41553697     X6Game_Win64_Shipping!lua_gethook+0x27aae
+04 00000000`086cfef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`086cff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`086cff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`086cff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 146  Id: 907c.9fa8 Suspend: 0 Teb: 00000000`002b0000 Unfrozen "IOThreadPool #1"
+ # Child-SP          RetAddr               Call Site
+00 00000000`086efdb8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`086efdc0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`086efe60 00000001`413efc6e     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`086efeb0 00000001`41553697     X6Game_Win64_Shipping!lua_gethook+0x27aae
+04 00000000`086efef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`086eff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`086eff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`086eff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 147  Id: 907c.7988 Suspend: 0 Teb: 00000000`002b2000 Unfrozen "IOThreadPool #2"
+ # Child-SP          RetAddr               Call Site
+00 00000000`0870fdb8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`0870fdc0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`0870fe60 00000001`413efc6e     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`0870feb0 00000001`41553697     X6Game_Win64_Shipping!lua_gethook+0x27aae
+04 00000000`0870fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`0870ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`0870ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`0870ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 148  Id: 907c.7054 Suspend: 0 Teb: 00000000`002b4000 Unfrozen "IOThreadPool #3"
+ # Child-SP          RetAddr               Call Site
+00 00000000`0872fdb8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`0872fdc0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`0872fe60 00000001`413efc6e     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`0872feb0 00000001`41553697     X6Game_Win64_Shipping!lua_gethook+0x27aae
+04 00000000`0872fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`0872ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`0872ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`0872ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 149  Id: 907c.94e8 Suspend: 0 Teb: 00000000`002b6000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000000`9550fb38 00007fff`e5bfdb33     ntdll!NtWaitForMultipleObjects+0x14
+01 00000000`9550fb40 00007fff`e5bfda01     KERNELBASE!WaitForMultipleObjectsEx+0x123
+02 00000000`9550fe30 00007ffe`a06f27eb     KERNELBASE!WaitForMultipleObjects+0x11
+03 00000000`9550fe70 00007ffe`a26150bf     ACE_Base64!NullExportFunction+0x8e343b
+04 00000000`9550ff20 00007fff`e6b0dbe7     ACE_Base64!NullExportFunction+0x2805d0f
+05 00000000`9550ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+06 00000000`9550ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 150  Id: 907c.49b0 Suspend: 0 Teb: 00000000`002b8000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000000`95f0fe28 00007ffe`a23ca262     ACE_Base64!NullExportFunction+0x915884
+01 00000000`95f0fe30 00007ffe`a06f1458     ACE_Base64!NullExportFunction+0x25baeb2
+02 00000000`95f0fef0 00007ffe`a06f1569     ACE_Base64!NullExportFunction+0x8e20a8
+03 00000000`95f0ff20 00007fff`e6b0dbe7     ACE_Base64!NullExportFunction+0x8e21b9
+04 00000000`95f0ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+05 00000000`95f0ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 151  Id: 907c.6128 Suspend: 0 Teb: 00000000`002bc000 Unfrozen "IoService"
+ # Child-SP          RetAddr               Call Site
+00 00000000`98a8fdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`98a8fdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`98a8fe70 00000001`421cb4e2     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`98a8fec0 00000001`41553697     X6Game_Win64_Shipping!src_strerror+0x121712
+04 00000000`98a8fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`98a8ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`98a8ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`98a8ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+
+ 152  Id: 907c.2b9c Suspend: 0 Teb: 00000000`002be000 Unfrozen "IoDispatcher"
+ # Child-SP          RetAddr               Call Site
+00 00000000`9960fdc8 00007fff`e5bfc7af     ntdll!NtWaitForSingleObject+0x14
+01 00000000`9960fdd0 00000001`41555c26     KERNELBASE!WaitForSingleObjectEx+0xaf
+02 00000000`9960fe70 00000001`41472672     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x1366f6
+03 00000000`9960fec0 00000001`41553697     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x53142
+04 00000000`9960fef0 00000001`4154d311     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x134167
+05 00000000`9960ff20 00007fff`e6b0dbe7     X6Game_Win64_Shipping!AK::WriteBytesMem::Size+0x12dde1
+06 00000000`9960ff60 00007fff`e84dfbec     kernel32!BaseThreadInitThunk+0x17
+07 00000000`9960ff90 00000000`00000000     ntdll!RtlUserThreadStart+0x2c
+Exit a remote ntsd/cdb client with Ctrl-b<enter>.
+Exit a remote windbg client with File.Exit (Alt-F4).
+If you really want the server to quit use an extra q, such as 'qq' or 'qqd'.

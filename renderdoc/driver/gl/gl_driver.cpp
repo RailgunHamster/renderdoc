@@ -269,7 +269,7 @@ void WrappedOpenGL::BuildGLExtensions()
 
   // this WGL extension is advertised in the gl ext string instead of via the wgl ext string,
   // return it just in case anyone is checking for it via this place. On non-windows platforms
-  // it won't be reported as we do the intersection of renderdoc supported extensions and
+  // it won't be reported as we do the intersection of RenderTest supported extensions and
   // implementation supported extensions.
   m_GLExtensions.push_back("WGL_EXT_swap_control");
 
@@ -615,7 +615,7 @@ void WrappedOpenGL::BuildGLESExtensions()
 WrappedOpenGL::WrappedOpenGL(GLPlatform &platform)
     : m_Platform(platform), m_ScratchSerialiser(new StreamWriter(1024), Ownership::Stream)
 {
-  RenderDoc::Inst().RegisterMemoryRegion(this, sizeof(WrappedOpenGL));
+  RenderTest::Inst().RegisterMemoryRegion(this, sizeof(WrappedOpenGL));
 
   BuildGLExtensions();
   BuildGLESExtensions();
@@ -629,7 +629,7 @@ WrappedOpenGL::WrappedOpenGL(GLPlatform &platform)
   uint32_t flags = WriteSerialiser::ChunkDuration | WriteSerialiser::ChunkTimestamp |
                    WriteSerialiser::ChunkThreadID;
 
-  if(RenderDoc::Inst().GetCaptureOptions().captureCallstacks)
+  if(RenderTest::Inst().GetCaptureOptions().captureCallstacks)
     flags |= WriteSerialiser::ChunkCallstack;
 
   m_ScratchSerialiser.SetChunkMetadataRecording(flags);
@@ -661,7 +661,7 @@ WrappedOpenGL::WrappedOpenGL(GLPlatform &platform)
   m_ActiveConditional = false;
   m_ActiveFeedback = false;
 
-  if(RenderDoc::Inst().IsReplayApp())
+  if(RenderTest::Inst().IsReplayApp())
   {
     m_State = CaptureState::LoadingReplaying;
   }
@@ -681,7 +681,7 @@ WrappedOpenGL::WrappedOpenGL(GLPlatform &platform)
   m_ContextResourceID = GetResourceManager()->RegisterResource(
       ResourceId(), GLResource(NULL, eResSpecial, eSpecialResContext));
 
-  if(!RenderDoc::Inst().IsReplayApp())
+  if(!RenderTest::Inst().IsReplayApp())
   {
     m_DeviceRecord = GetResourceManager()->AddResourceRecord(m_DeviceResourceID);
     m_DeviceRecord->DataInSerialiser = false;
@@ -708,7 +708,7 @@ WrappedOpenGL::WrappedOpenGL(GLPlatform &platform)
   }
 
   rdcspv::Init();
-  RenderDoc::Inst().RegisterShutdownFunction(&rdcspv::Shutdown);
+  RenderTest::Inst().RegisterShutdownFunction(&rdcspv::Shutdown);
 
   m_CurrentDefaultFBO = 0;
 
@@ -998,7 +998,7 @@ WrappedOpenGL::~WrappedOpenGL()
   for(size_t i = 0; i < m_CtxDataVector.size(); i++)
     delete m_CtxDataVector[i];
 
-  RenderDoc::Inst().UnregisterMemoryRegion(this);
+  RenderTest::Inst().UnregisterMemoryRegion(this);
 
   delete m_Replay;
 }
@@ -1041,7 +1041,7 @@ void WrappedOpenGL::UseUnusedSupportedFunction(const char *name)
     {
       if(it->second.Modern())
       {
-        RenderDoc::Inst().RemoveDeviceFrameCapturer(it->second.ctx);
+        RenderTest::Inst().RemoveDeviceFrameCapturer(it->second.ctx);
         for(auto wnd = it->second.windows.begin(); wnd != it->second.windows.end();)
         {
           void *wndHandle = wnd->first;
@@ -1072,7 +1072,7 @@ void WrappedOpenGL::UseUnusedSupportedFunction(const char *name)
     if(m_UnsupportedFunctions.size() > i)
       unsupportedStatus += " - ...\n";
 
-    RenderDoc::Inst().SetDriverUnsupportedMessage(RDCDriver::OpenGL, unsupportedStatus);
+    RenderTest::Inst().SetDriverUnsupportedMessage(RDCDriver::OpenGL, unsupportedStatus);
   }
 }
 
@@ -1114,7 +1114,7 @@ void WrappedOpenGL::DeleteContext(void *contextHandle)
   RDCLOG("Deleting context %p", contextHandle);
 
   if(ctxdata.Modern())
-    RenderDoc::Inst().RemoveDeviceFrameCapturer(ctxdata.ctx);
+    RenderTest::Inst().RemoveDeviceFrameCapturer(ctxdata.ctx);
 
   // delete the context
   GetResourceManager()->DeleteContext(contextHandle);
@@ -1234,7 +1234,7 @@ void WrappedOpenGL::ContextData::UnassociateWindow(WrappedOpenGL *driver, void *
       Keyboard::RemoveInputWindow(it->second.first, wndHandle);
 
     windows.erase(wndHandle);
-    RenderDoc::Inst().RemoveFrameCapturer(DeviceOwnedWindow(ctx, wndHandle));
+    RenderTest::Inst().RemoveFrameCapturer(DeviceOwnedWindow(ctx, wndHandle));
   }
 }
 
@@ -1244,7 +1244,7 @@ void WrappedOpenGL::ContextData::AssociateWindow(WrappedOpenGL *driver, Windowin
   auto it = windows.find(wndHandle);
   if(it == windows.end())
   {
-    RenderDoc::Inst().AddFrameCapturer(DeviceOwnedWindow(ctx, wndHandle), driver);
+    RenderTest::Inst().AddFrameCapturer(DeviceOwnedWindow(ctx, wndHandle), driver);
 
     if(winSystem != WindowingSystem::Headless && IsCaptureMode(driver->GetState()))
       Keyboard::AddInputWindow(winSystem, wndHandle);
@@ -1296,12 +1296,12 @@ void WrappedOpenGL::CreateContext(GLWindowingData winData, void *shareContext,
   // if the context was created with modern attribs create (whether or not it's explicitly core),
   // and no unsupported functions have been used, we can capture from this context
   if(attribsCreate && m_UnsupportedFunctions.empty())
-    RenderDoc::Inst().AddDeviceFrameCapturer(ctxdata.ctx, this);
+    RenderTest::Inst().AddDeviceFrameCapturer(ctxdata.ctx, this);
 
   // re-configure callstack capture, since WrappedOpenGL constructor may run too early
   uint32_t flags = m_ScratchSerialiser.GetChunkMetadataRecording();
 
-  if(RenderDoc::Inst().GetCaptureOptions().captureCallstacks)
+  if(RenderTest::Inst().GetCaptureOptions().captureCallstacks)
     flags |= WriteSerialiser::ChunkCallstack;
   else
     flags &= ~WriteSerialiser::ChunkCallstack;
@@ -1474,7 +1474,7 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
     const rdcarray<rdcstr> &globalExts = IsGLES ? m_GLESExtensions : m_GLExtensions;
 
     if(HasExt[KHR_debug] && GL.glDebugMessageCallback &&
-       RenderDoc::Inst().GetCaptureOptions().apiValidation)
+       RenderTest::Inst().GetCaptureOptions().apiValidation)
     {
       GL.glDebugMessageCallback(&DebugSnoopStatic, this);
       GL.glEnable(eGL_DEBUG_OUTPUT_SYNCHRONOUS);
@@ -1533,8 +1533,8 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
       }
     }
 
-    // this extension is something RenderDoc will support even if the impl
-    // doesn't. https://renderdoc.org/debug_tool.txt
+    // this extension is something RenderTest will support even if the impl
+    // doesn't. https://RenderTest.org/debug_tool.txt
     ctxdata.glExts.push_back("GL_EXT_debug_tool");
 
     // similarly we report all the debug extensions so that applications can use them freely - we
@@ -2056,7 +2056,7 @@ void WrappedOpenGL::RefreshDerivedReplacements()
 void WrappedOpenGL::SwapBuffers(WindowingSystem winSystem, void *windowHandle)
 {
   if(IsBackgroundCapturing(m_State))
-    RenderDoc::Inst().Tick();
+    RenderTest::Inst().Tick();
 
   // don't do anything if no context is active.
   if(m_ActiveContexts[Threading::GetCurrentID()].ctx == NULL)
@@ -2065,7 +2065,7 @@ void WrappedOpenGL::SwapBuffers(WindowingSystem winSystem, void *windowHandle)
     if(m_NoCtxFrames == 100)
     {
       RDCERR(
-          "Seen 100 frames with no context current. RenderDoc requires a context to be current "
+          "Seen 100 frames with no context current. RenderTest requires a context to be current "
           "during the call to SwapBuffers to display its overlay and start/stop captures on "
           "default keys.\nIf your GL use is elsewhere, consider using the in-application API to "
           "trigger captures manually");
@@ -2109,7 +2109,7 @@ void WrappedOpenGL::SwapBuffers(WindowingSystem winSystem, void *windowHandle)
 
   DeviceOwnedWindow devWnd(ctxdata.ctx, windowHandle);
 
-  bool activeWindow = RenderDoc::Inst().IsActiveWindow(devWnd);
+  bool activeWindow = RenderTest::Inst().IsActiveWindow(devWnd);
 
   // look at previous associations and decay any that are too old
   uint64_t ref = Timing::GetUnixTimestamp() - 5;    // 5 seconds
@@ -2134,16 +2134,16 @@ void WrappedOpenGL::SwapBuffers(WindowingSystem winSystem, void *windowHandle)
 
   if(IsBackgroundCapturing(m_State))
   {
-    uint32_t overlay = RenderDoc::Inst().GetOverlayBits();
+    uint32_t overlay = RenderTest::Inst().GetOverlayBits();
 
-    if(overlay & eRENDERDOC_Overlay_Enabled)
+    if(overlay & eRENDERTEST_Overlay_Enabled)
     {
       int flags = 0;
       // capturing is disabled if unsupported functions have been used, or this context is legacy
       if(ctxdata.Legacy() || !m_UnsupportedFunctions.empty())
-        flags |= RenderDoc::eOverlay_CaptureDisabled;
+        flags |= RenderTest::eOverlay_CaptureDisabled;
       rdcstr overlayText =
-          RenderDoc::Inst().GetOverlayText(GetDriverType(), devWnd, m_FrameCounter, flags);
+          RenderTest::Inst().GetOverlayText(GetDriverType(), devWnd, m_FrameCounter, flags);
 
       if(ctxdata.Legacy())
       {
@@ -2218,7 +2218,7 @@ void WrappedOpenGL::SwapBuffers(WindowingSystem winSystem, void *windowHandle)
     GetContextRecord()->AddChunk(scope.Get());
   }
 
-  RenderDoc::Inst().AddActiveDriver(GetDriverType(), true);
+  RenderTest::Inst().AddActiveDriver(GetDriverType(), true);
 
   GetResourceManager()->CleanBackgroundFrameReferences();
 
@@ -2227,7 +2227,7 @@ void WrappedOpenGL::SwapBuffers(WindowingSystem winSystem, void *windowHandle)
     // first present to *any* window, even inactive, terminates frame 0
     if(m_FirstFrameCapture && IsActiveCapturing(m_State))
     {
-      RenderDoc::Inst().EndFrameCapture(DeviceOwnedWindow(m_FirstFrameCaptureContext, NULL));
+      RenderTest::Inst().EndFrameCapture(DeviceOwnedWindow(m_FirstFrameCaptureContext, NULL));
       m_FirstFrameCapture = false;
       m_FirstFrameCaptureContext = NULL;
     }
@@ -2241,11 +2241,11 @@ void WrappedOpenGL::SwapBuffers(WindowingSystem winSystem, void *windowHandle)
 
   // kill any current capture that isn't application defined
   if(IsActiveCapturing(m_State) && !m_AppControlledCapture)
-    RenderDoc::Inst().EndFrameCapture(devWnd);
+    RenderTest::Inst().EndFrameCapture(devWnd);
 
-  if(RenderDoc::Inst().ShouldTriggerCapture(m_FrameCounter) && IsBackgroundCapturing(m_State))
+  if(RenderTest::Inst().ShouldTriggerCapture(m_FrameCounter) && IsBackgroundCapturing(m_State))
   {
-    RenderDoc::Inst().StartFrameCapture(devWnd);
+    RenderTest::Inst().StartFrameCapture(devWnd);
 
     m_AppControlledCapture = false;
     m_CapturedFrames.back().frameNumber = m_FrameCounter;
@@ -2363,7 +2363,7 @@ bool WrappedOpenGL::EndFrameCapture(DeviceOwnedWindow devWnd)
     ContextEndFrame();
     FinishCapture();
 
-    RenderDoc::FramePixels *bbim = NULL;
+    RenderTest::FramePixels *bbim = NULL;
 
     // if the specified context isn't current, try and see if we've saved
     // an appropriate backbuffer image during capture.
@@ -2385,7 +2385,7 @@ bool WrappedOpenGL::EndFrameCapture(DeviceOwnedWindow devWnd)
       bbim = SaveBackbufferImage();
 
     RDCFile *rdc =
-        RenderDoc::Inst().CreateRDC(GetDriverType(), m_CapturedFrames.back().frameNumber, bbim[0]);
+        RenderTest::Inst().CreateRDC(GetDriverType(), m_CapturedFrames.back().frameNumber, bbim[0]);
 
     SAFE_DELETE(bbim);
 
@@ -2491,7 +2491,7 @@ bool WrappedOpenGL::EndFrameCapture(DeviceOwnedWindow devWnd)
 
         for(auto it = recordlist.begin(); it != recordlist.end(); ++it)
         {
-          RenderDoc::Inst().SetProgress(CaptureProgress::SerialiseFrameContents, idx / num);
+          RenderTest::Inst().SetProgress(CaptureProgress::SerialiseFrameContents, idx / num);
           idx += 1.0f;
           it->second->Write(ser);
         }
@@ -2505,7 +2505,7 @@ bool WrappedOpenGL::EndFrameCapture(DeviceOwnedWindow devWnd)
     RDCLOG("Captured GL frame with %f MB capture section in %f seconds",
            double(captureSectionSize) / (1024.0 * 1024.0), m_CaptureTimer.GetMilliseconds() / 1000.0);
 
-    RenderDoc::Inst().FinishCaptureWriting(rdc, m_CapturedFrames.back().frameNumber);
+    RenderTest::Inst().FinishCaptureWriting(rdc, m_CapturedFrames.back().frameNumber);
 
     m_State = CaptureState::BackgroundCapturing;
 
@@ -2555,7 +2555,7 @@ bool WrappedOpenGL::EndFrameCapture(DeviceOwnedWindow devWnd)
 
     m_Failures++;
 
-    if((RenderDoc::Inst().GetOverlayBits() & eRENDERDOC_Overlay_Enabled))
+    if((RenderTest::Inst().GetOverlayBits() & eRENDERTEST_Overlay_Enabled))
     {
       ContextData &ctxdata = GetCtxData();
 
@@ -2652,7 +2652,7 @@ bool WrappedOpenGL::DiscardFrameCapture(DeviceOwnedWindow devWnd)
 
   SCOPED_LOCK(glLock);
 
-  RenderDoc::Inst().FinishCaptureWriting(NULL, m_CapturedFrames.back().frameNumber);
+  RenderTest::Inst().FinishCaptureWriting(NULL, m_CapturedFrames.back().frameNumber);
 
   for(const rdcpair<GLResourceRecord *, Chunk *> &r : m_BufferResizes)
   {
@@ -2695,11 +2695,11 @@ void WrappedOpenGL::FirstFrame(void *ctx, void *wndHandle)
 {
   // if we have to capture the first frame, begin capturing immediately
   if(m_FrameCounter == 0 && IsBackgroundCapturing(m_State) &&
-     RenderDoc::Inst().ShouldTriggerCapture(0))
+     RenderTest::Inst().ShouldTriggerCapture(0))
   {
     // since we haven't associated the window we can't capture by window, so we have to capture just
     // on the device - the very next present to any window on this context will end the capture.
-    RenderDoc::Inst().StartFrameCapture(DeviceOwnedWindow(ctx, NULL));
+    RenderTest::Inst().StartFrameCapture(DeviceOwnedWindow(ctx, NULL));
 
     m_FirstFrameCapture = true;
     m_FirstFrameCaptureContext = ctx;
@@ -2708,10 +2708,10 @@ void WrappedOpenGL::FirstFrame(void *ctx, void *wndHandle)
   }
 }
 
-RenderDoc::FramePixels *WrappedOpenGL::SaveBackbufferImage()
+RenderTest::FramePixels *WrappedOpenGL::SaveBackbufferImage()
 {
   const uint16_t maxSize = 2048;
-  RenderDoc::FramePixels *fp = new RenderDoc::FramePixels();
+  RenderTest::FramePixels *fp = new RenderTest::FramePixels();
 
   if(GL.glGetIntegerv && GL.glReadBuffer && GL.glBindFramebuffer && GL.glBindBuffer && GL.glReadPixels)
   {
@@ -3130,7 +3130,7 @@ void WrappedOpenGL::AttemptCapture()
 
   m_DebugMessages.clear();
 
-  if(!HasExt[KHR_debug] && RenderDoc::Inst().GetCaptureOptions().apiValidation)
+  if(!HasExt[KHR_debug] && RenderTest::Inst().GetCaptureOptions().apiValidation)
   {
     DebugMessage msg = {};
 
@@ -3418,7 +3418,7 @@ void WrappedOpenGL::DebugSnoop(GLenum source, GLenum type, GLuint id, GLenum sev
     }
   }
 
-  if(GetCtxData().m_RealDebugFunc && !RenderDoc::Inst().GetCaptureOptions().debugOutputMute)
+  if(GetCtxData().m_RealDebugFunc && !RenderTest::Inst().GetCaptureOptions().debugOutputMute)
     GetCtxData().m_RealDebugFunc(source, type, id, severity, length, message,
                                  GetCtxData().m_RealDebugFuncParam);
 }
@@ -3550,7 +3550,7 @@ RDResult WrappedOpenGL::ReadLogInitialisation(RDCFile *rdc, bool storeStructured
 
     uint64_t offsetEnd = reader->GetOffset();
 
-    RenderDoc::Inst().SetProgress(LoadProgress::FileInitialRead,
+    RenderTest::Inst().SetProgress(LoadProgress::FileInitialRead,
                                   float(offsetEnd) / float(reader->GetSize()));
 
     if((SystemChunk)context == SystemChunk::CaptureScope)
@@ -4842,8 +4842,8 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
     }
 
     case GLChunk::SetCommandAnnotation:
-      return Serialise_SetCommandAnnotation(ser, rdcstr(), eRENDERDOC_AnnotationMax, 0,
-                                            RENDERDOC_AnnotationValue());
+      return Serialise_SetCommandAnnotation(ser, rdcstr(), eRENDERTEST_AnnotationMax, 0,
+                                            RENDERTEST_AnnotationValue());
 
     case GLChunk::ContextConfiguration: return Serialise_ContextConfiguration(ser, NULL);
 
@@ -5384,7 +5384,7 @@ RDResult WrappedOpenGL::ContextReplayLog(CaptureState readType, uint32_t startEv
     if(!success)
       return m_FailedReplayResult;
 
-    RenderDoc::Inst().SetProgress(
+    RenderTest::Inst().SetProgress(
         LoadProgress::FrameEventsRead,
         float(m_CurChunkOffset - startOffset) / float(ser.GetReader()->GetSize()));
 
@@ -5913,8 +5913,8 @@ void WrappedOpenGL::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
 
   if(!partial)
   {
-    RENDERDOC_PROFILEREGION("ApplyInitialContents");
-    GLMarkerRegion apply("!!!!RenderDoc Internal: ApplyInitialContents");
+    RENDERTEST_PROFILEREGION("ApplyInitialContents");
+    GLMarkerRegion apply("!!!!RenderTest Internal: ApplyInitialContents");
     GetResourceManager()->ApplyInitialContents();
 
     m_WasActiveFeedback = false;
@@ -5922,7 +5922,7 @@ void WrappedOpenGL::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
 
   m_State = CaptureState::ActiveReplaying;
 
-  GLMarkerRegion::Set(StringFormat::Fmt("!!!!RenderDoc Internal:  Replay %d (%d): %u->%u",
+  GLMarkerRegion::Set(StringFormat::Fmt("!!!!RenderTest Internal:  Replay %d (%d): %u->%u",
                                         (int)replayType, (int)partial, startEventID, endEventID));
 
   m_ReplayEventCount = 0;
@@ -5944,5 +5944,5 @@ void WrappedOpenGL::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
   for(int i = 0; m_ReplayMarkers && i < m_ReplayEventCount; i++)
     GLMarkerRegion::End();
 
-  GLMarkerRegion::Set("!!!!RenderDoc Internal: Done replay");
+  GLMarkerRegion::Set("!!!!RenderTest Internal: Done replay");
 }

@@ -54,19 +54,19 @@ ReplayController::ReplayController()
 
   m_EventID = 100000;
 
-  RenderDoc::Inst().RegisterMemoryRegion(this, sizeof(ReplayController));
+  RenderTest::Inst().RegisterMemoryRegion(this, sizeof(ReplayController));
 }
 
 ReplayController::~ReplayController()
 {
-  RenderDoc::Inst().UnregisterMemoryRegion(this);
+  RenderTest::Inst().UnregisterMemoryRegion(this);
   CHECK_REPLAY_THREAD();
 }
 
 void ReplayController::SetFrameEvent(uint32_t eventId, bool force)
 {
   CHECK_REPLAY_THREAD();
-  RENDERDOC_PROFILEFUNCTION();
+  RENDERTEST_PROFILEFUNCTION();
 
   // use remapped event if there's a match
   auto it = m_EventRemap.find(eventId);
@@ -179,7 +179,7 @@ rdcstr ReplayController::DisassembleShader(ResourceId pipeline, const ShaderRefl
 {
   CHECK_REPLAY_THREAD();
 
-  RENDERDOC_PROFILEFUNCTION();
+  RENDERTEST_PROFILEFUNCTION();
 
   if(refl == NULL)
     return "; Error: No shader specified";
@@ -454,7 +454,7 @@ rdcarray<CounterResult> ReplayController::FetchCounters(const rdcarray<GPUCounte
 {
   CHECK_REPLAY_THREAD();
 
-  RENDERDOC_PROFILEFUNCTION();
+  RENDERTEST_PROFILEFUNCTION();
 
   rdcarray<CounterResult> ret = m_pDevice->FetchCounters(counters);
   FatalErrorCheck();
@@ -572,7 +572,7 @@ bytebuf ReplayController::GetBufferData(ResourceId buff, uint64_t offset, uint64
 bytebuf ReplayController::GetTextureData(ResourceId tex, const Subresource &sub)
 {
   CHECK_REPLAY_THREAD();
-  RENDERDOC_PROFILEFUNCTION();
+  RENDERTEST_PROFILEFUNCTION();
 
   bytebuf ret;
 
@@ -588,7 +588,7 @@ bytebuf ReplayController::GetTextureData(ResourceId tex, const Subresource &sub)
 ResultDetails ReplayController::SaveTexture(const TextureSave &saveData, const rdcstr &path)
 {
   CHECK_REPLAY_THREAD();
-  RENDERDOC_PROFILEFUNCTION();
+  RENDERTEST_PROFILEFUNCTION();
 
   TextureSave sd = saveData;    // mutable copy
 
@@ -1134,8 +1134,8 @@ ResultDetails ReplayController::SaveTexture(const TextureSave &saveData, const r
           if(sd.alpha == AlphaMapping::BlendToCheckerboard)
           {
             bool lightSquare = ((x / 64) % 2) == ((y / 64) % 2);
-            col = lightSquare ? RenderDoc::Inst().LightCheckerboardColor()
-                              : RenderDoc::Inst().DarkCheckerboardColor();
+            col = lightSquare ? RenderTest::Inst().LightCheckerboardColor()
+                              : RenderTest::Inst().DarkCheckerboardColor();
           }
 
           col.x = ConvertLinearToSRGB(col.x);
@@ -1450,7 +1450,7 @@ rdcarray<PixelModification> ReplayController::PixelHistory(ResourceId target, ui
 {
   CHECK_REPLAY_THREAD();
 
-  RENDERDOC_PROFILEFUNCTION();
+  RENDERTEST_PROFILEFUNCTION();
 
   rdcarray<PixelModification> ret;
 
@@ -1586,7 +1586,7 @@ PixelValue ReplayController::PickPixel(ResourceId tex, uint32_t x, uint32_t y,
                                        const Subresource &sub, CompType typeCast)
 {
   CHECK_REPLAY_THREAD();
-  RENDERDOC_PROFILEFUNCTION();
+  RENDERTEST_PROFILEFUNCTION();
 
   PixelValue ret;
 
@@ -1634,7 +1634,7 @@ ShaderDebugTrace *ReplayController::DebugVertex(uint32_t vertid, uint32_t instid
 {
   CHECK_REPLAY_THREAD();
 
-  RENDERDOC_PROFILEFUNCTION();
+  RENDERTEST_PROFILEFUNCTION();
 
   ShaderDebugTrace *ret = m_pDevice->DebugVertex(m_EventID, vertid, instid, idx, view);
   FatalErrorCheck();
@@ -1651,7 +1651,7 @@ ShaderDebugTrace *ReplayController::DebugPixel(uint32_t x, uint32_t y, const Deb
 {
   CHECK_REPLAY_THREAD();
 
-  RENDERDOC_PROFILEFUNCTION();
+  RENDERTEST_PROFILEFUNCTION();
 
   ShaderDebugTrace *ret = m_pDevice->DebugPixel(m_EventID, x, y, inputs);
   FatalErrorCheck();
@@ -1669,7 +1669,7 @@ ShaderDebugTrace *ReplayController::DebugThread(const rdcfixedarray<uint32_t, 3>
 {
   CHECK_REPLAY_THREAD();
 
-  RENDERDOC_PROFILEFUNCTION();
+  RENDERTEST_PROFILEFUNCTION();
 
   ShaderDebugTrace *ret = m_pDevice->DebugThread(m_EventID, groupid, threadid);
   FatalErrorCheck();
@@ -1687,7 +1687,7 @@ ShaderDebugTrace *ReplayController::DebugMeshThread(const rdcfixedarray<uint32_t
 {
   CHECK_REPLAY_THREAD();
 
-  RENDERDOC_PROFILEFUNCTION();
+  RENDERTEST_PROFILEFUNCTION();
 
   ShaderDebugTrace *ret = m_pDevice->DebugMeshThread(m_EventID, groupid, threadid);
   FatalErrorCheck();
@@ -1704,7 +1704,7 @@ rdcarray<ShaderDebugState> ReplayController::ContinueDebug(ShaderDebugger *debug
 {
   CHECK_REPLAY_THREAD();
 
-  RENDERDOC_PROFILEFUNCTION();
+  RENDERTEST_PROFILEFUNCTION();
 
   rdcarray<ShaderDebugState> ret = m_pDevice->ContinueDebug(debugger);
   FatalErrorCheck();
@@ -1730,7 +1730,7 @@ rdcarray<ShaderVariable> ReplayController::GetCBufferVariableContents(
 {
   CHECK_REPLAY_THREAD();
 
-  RENDERDOC_PROFILEFUNCTION();
+  RENDERTEST_PROFILEFUNCTION();
 
   bytebuf data;
   if(buffer != ResourceId())
@@ -1773,7 +1773,7 @@ rdcstr ReplayController::CreateRGPProfile(WindowingData window)
     return "";
   }
 
-  rdcstr path = FileIO::GetTempFolderFilename() + "/renderdoc_rgp_capture.rgp";
+  rdcstr path = FileIO::GetTempFolderFilename() + "/RENDERTEST_rgp_capture.rgp";
 
   FileIO::Delete(path);
 
@@ -1951,7 +1951,7 @@ void ReplayController::Shutdown()
     m_pDevice->Shutdown();
   m_pDevice = NULL;
 
-  RenderDoc::Inst().ClearTrackedFiles();
+  RenderTest::Inst().ClearTrackedFiles();
   delete this;
 }
 
@@ -2027,7 +2027,7 @@ rdcpair<ResourceId, rdcstr> ReplayController::BuildTargetShader(
 {
   CHECK_REPLAY_THREAD();
 
-  RENDERDOC_PROFILEFUNCTION();
+  RENDERTEST_PROFILEFUNCTION();
 
   if(source.empty())
     return rdcpair<ResourceId, rdcstr>(ResourceId(), "0-byte shader is not valid");
@@ -2176,10 +2176,10 @@ RDResult ReplayController::CreateDevice(RDCFile *rdc, const ReplayOptions &opts)
 {
   CHECK_REPLAY_THREAD();
 
-  RENDERDOC_PROFILEFUNCTION();
+  RENDERTEST_PROFILEFUNCTION();
 
   IReplayDriver *driver = NULL;
-  RDResult result = RenderDoc::Inst().CreateReplayDriver(rdc, opts, &driver);
+  RDResult result = RenderTest::Inst().CreateReplayDriver(rdc, opts, &driver);
 
   if(driver && result == ResultCode::Succeeded)
   {
@@ -2209,7 +2209,7 @@ RDResult ReplayController::PostCreateInit(IReplayDriver *device, RDCFile *rdc)
 {
   CHECK_REPLAY_THREAD();
 
-  RENDERDOC_PROFILEFUNCTION();
+  RENDERTEST_PROFILEFUNCTION();
 
   m_pDevice = device;
 
@@ -2300,7 +2300,7 @@ void ReplayController::FetchPipelineState(uint32_t eventId)
 {
   CHECK_REPLAY_THREAD();
 
-  RENDERDOC_PROFILEFUNCTION();
+  RENDERTEST_PROFILEFUNCTION();
 
   m_pDevice->SavePipelineState(eventId);
   FatalErrorCheck();

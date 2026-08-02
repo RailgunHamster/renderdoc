@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Development|Win32">
@@ -21,7 +21,7 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{88C5DAC6-30A0-4CFD-AF51-540A977D1F3F}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>renderdoc_vulkan</RootNamespace>
+    <RootNamespace>RENDERTEST_vulkan</RootNamespace>
     <ProjectName>vulkan</ProjectName>
   </PropertyGroup>
   <Import Project="$(SolutionDir)\util\WindowsSDKTarget.props" />
@@ -66,7 +66,7 @@
       <MinimalRebuild>false</MinimalRebuild>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <AdditionalIncludeDirectories>$(SolutionDir)renderdoc\;$(SolutionDir)renderdoc\3rdparty\</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>VK_USE_PLATFORM_WIN32_KHR;RENDERDOC_EXPORTS;RENDERDOC_PLATFORM_WIN32;WIN32;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>VK_USE_PLATFORM_WIN32_KHR;RENDERTEST_EXPORTS;RENDERTEST_PLATFORM_WIN32;WIN32;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <WarningLevel>Level4</WarningLevel>
       <TreatWarningAsError>true</TreatWarningAsError>
       <DisableSpecificWarnings>4100</DisableSpecificWarnings>
@@ -195,7 +195,7 @@
     <ClInclude Include="vk_state.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="renderdoc.json" />
+    <None Include="RenderTest.json" />
     <None Include="vk_apple_helpers.mm" />
   </ItemGroup>
   <ItemGroup>

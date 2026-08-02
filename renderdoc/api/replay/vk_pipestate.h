@@ -1470,7 +1470,7 @@ struct ConditionalRendering
 DOCUMENT("The full current Vulkan pipeline state.");
 struct State
 {
-#if !defined(RENDERDOC_EXPORTS)
+#if !defined(RENDERTEST_EXPORTS)
   // disallow creation/copy of this object externally
   State() = delete;
   State(const State &) = delete;

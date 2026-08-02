@@ -75,19 +75,19 @@
 #define DOCUMENT4(text1, text2, text3, text4)
 #endif
 
-#if defined(RENDERDOC_PLATFORM_WIN32)
+#if defined(RENDERTEST_PLATFORM_WIN32)
 
-#define RENDERDOC_EXPORT_API __declspec(dllexport)
-#define RENDERDOC_IMPORT_API __declspec(dllimport)
-#define RENDERDOC_CC __cdecl
+#define RENDERTEST_EXPORT_API __declspec(dllexport)
+#define RENDERTEST_IMPORT_API __declspec(dllimport)
+#define RENDERTEST_CC __cdecl
 
-#elif defined(RENDERDOC_PLATFORM_LINUX) || defined(RENDERDOC_PLATFORM_APPLE) || \
-    defined(RENDERDOC_PLATFORM_ANDROID) || defined(RENDERDOC_PLATFORM_SWITCH)
+#elif defined(RENDERTEST_PLATFORM_LINUX) || defined(RENDERTEST_PLATFORM_APPLE) || \
+    defined(RENDERTEST_PLATFORM_ANDROID) || defined(RENDERTEST_PLATFORM_SWITCH)
 
-#define RENDERDOC_EXPORT_API __attribute__((visibility("default"), used))
-#define RENDERDOC_IMPORT_API
+#define RENDERTEST_EXPORT_API __attribute__((visibility("default"), used))
+#define RENDERTEST_IMPORT_API
 
-#define RENDERDOC_CC
+#define RENDERTEST_CC
 
 #else
 
@@ -96,10 +96,10 @@
 #endif
 
 // define the API visibility depending on whether we're exporting
-#ifdef RENDERDOC_EXPORTS
-#define RENDERDOC_API RENDERDOC_EXPORT_API
+#ifdef RENDERTEST_EXPORTS
+#define RENDERTEST_API RENDERTEST_EXPORT_API
 #else
-#define RENDERDOC_API RENDERDOC_IMPORT_API
+#define RENDERTEST_API RENDERTEST_IMPORT_API
 #endif
 
 #ifdef NO_ENUM_CLASS_OPERATORS

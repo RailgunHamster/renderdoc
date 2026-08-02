@@ -40,7 +40,7 @@ std::string conv(const rdcstr &s)
 
 static int command_usage(std::string command = "");
 
-// normally this is in the renderdoc core library, but it's needed for the 'unknown enum' path,
+// normally this is in the RenderTest core library, but it's needed for the 'unknown enum' path,
 // so we implement it here using ostringstream. It's not great, but this is a very uncommon path -
 // either for invalid values or for when a new enum is added and the code isn't updated
 template <>
@@ -136,8 +136,8 @@ struct VersionCommand : public Command
   virtual bool Parse(cmdline::parser &, GlobalEnvironment &) { return true; }
   virtual int Execute(const CaptureOptions &)
   {
-    std::cout << "renderdoccmd " << (sizeof(uintptr_t) == sizeof(uint64_t) ? "x64" : "x86")
-              << " v" MAJOR_MINOR_VERSION_STRING << " built from " << RENDERDOC_GetCommitHash()
+    std::cout << "RenderTestcmd " << (sizeof(uintptr_t) == sizeof(uint64_t) ? "x64" : "x86")
+              << " v" MAJOR_MINOR_VERSION_STRING << " built from " << RENDERTEST_GetCommitHash()
               << std::endl;
 
 #if defined(DISTRIBUTION_VERSION)
@@ -235,7 +235,7 @@ public:
 
     rdcarray<EnvironmentModification> env;
 
-    ExecuteResult res = RENDERDOC_ExecuteAndInject(
+    ExecuteResult res = RENDERTEST_ExecuteAndInject(
         conv(executable), conv(workingDir), conv(cmdLine), env, conv(logFile), opts, wait_for_exit);
 
     if(res.result.code != ResultCode::Succeeded)
@@ -291,7 +291,7 @@ public:
   {
     parser.add<uint32_t>("PID", 0, "The process ID of the process to inject.", true);
   }
-  virtual const char *Description() { return "Injects RenderDoc into a given running process."; }
+  virtual const char *Description() { return "Injects RenderTest into a given running process."; }
   virtual bool IsInternalOnly() { return false; }
   virtual bool IsCaptureCommand() { return true; }
   virtual bool Parse(cmdline::parser &parser, GlobalEnvironment &)
@@ -307,7 +307,7 @@ public:
 
     rdcarray<EnvironmentModification> env;
 
-    ExecuteResult res = RENDERDOC_InjectIntoProcess(PID, env, conv(captureFile), opts, wait_for_exit);
+    ExecuteResult res = RENDERTEST_InjectIntoProcess(PID, env, conv(captureFile), opts, wait_for_exit);
 
     if(res.result.code != ResultCode::Succeeded)
     {
@@ -415,7 +415,7 @@ public:
 
     bytebuf buf;
 
-    ICaptureFile *file = RENDERDOC_OpenCaptureFile();
+    ICaptureFile *file = RENDERTEST_OpenCaptureFile();
     ResultDetails st = file->OpenFile(conv(infile), "rdc", NULL);
     if(st.OK())
     {
@@ -470,7 +470,7 @@ public:
     parser.add("preview", 'v', "Display a preview window when a replay is active.");
     parser.add<uint32_t>(
         "port", 'p',
-        "The port to listen on. Default is 0, which listens on RenderDoc's default port.", false, 0);
+        "The port to listen on. Default is 0, which listens on RenderTest's default port.", false, 0);
   }
   virtual const char *Description()
   {
@@ -503,7 +503,7 @@ public:
     usingKillSignal = true;
 
     // by default have a do-nothing callback that creates no windows
-    RENDERDOC_PreviewWindowCallback previewWindow;
+    RENDERTEST_PreviewWindowCallback previewWindow;
 
     // if the user asked for a preview, then call to the platform-specific preview function
     if(preview)
@@ -513,7 +513,7 @@ public:
     if(DisplayRemoteServerPreview(false, {}).system != WindowingSystem::Unknown)
       previewWindow = &DisplayRemoteServerPreview;
 
-    RENDERDOC_BecomeRemoteServer(
+    RENDERTEST_BecomeRemoteServer(
         conv(host), port, []() { return killSignal; }, previewWindow);
 
     std::cerr << std::endl << "Cleaning up from replay hosting." << std::endl;
@@ -583,13 +583,13 @@ public:
       std::cout << "Replaying '" << filename << "' on " << remote_host << "." << std::endl;
 
       IRemoteServer *remote = NULL;
-      ResultDetails result = RENDERDOC_CreateRemoteServerConnection(conv(remote_host), &remote);
+      ResultDetails result = RENDERTEST_CreateRemoteServerConnection(conv(remote_host), &remote);
 
       if(remote == NULL || result.code != ResultCode::Succeeded)
       {
         std::cerr << "Error: " << result.Message() << " - Couldn't connect to " << remote_host
                   << "." << std::endl;
-        std::cerr << "       Have you run renderdoccmd remoteserver on '" << remote_host << "'?"
+        std::cerr << "       Have you run RenderTestcmd remoteserver on '" << remote_host << "'?"
                   << std::endl;
         return 1;
       }
@@ -619,7 +619,7 @@ public:
     {
       std::cout << "Replaying '" << filename << "' locally.." << std::endl;
 
-      ICaptureFile *file = RENDERDOC_OpenCaptureFile();
+      ICaptureFile *file = RENDERTEST_OpenCaptureFile();
 
       ResultDetails res = file->OpenFile(conv(filename), "rdc", NULL);
 
@@ -656,7 +656,7 @@ struct formats_reader
 {
   formats_reader(bool input)
   {
-    ICaptureFile *tmp = RENDERDOC_OpenCaptureFile();
+    ICaptureFile *tmp = RENDERTEST_OpenCaptureFile();
 
     for(const CaptureFileFormat &f : tmp->GetCaptureFileFormats())
     {
@@ -746,7 +746,7 @@ public:
 
   virtual int Execute(const CaptureOptions &)
   {
-    ICaptureFile *tmp = RENDERDOC_OpenCaptureFile();
+    ICaptureFile *tmp = RENDERTEST_OpenCaptureFile();
 
     m_Formats = tmp->GetCaptureFileFormats();
 
@@ -809,7 +809,7 @@ public:
       return 1;
     }
 
-    ICaptureFile *file = RENDERDOC_OpenCaptureFile();
+    ICaptureFile *file = RENDERTEST_OpenCaptureFile();
 
     ResultDetails st = file->OpenFile(conv(infile), conv(infmt), NULL);
 
@@ -897,10 +897,10 @@ public:
   virtual int Execute(const CaptureOptions &)
   {
     if(mode == "unit")
-      return RENDERDOC_RunUnitTests("renderdoccmd test unit", args);
+      return RENDERTEST_RunUnitTests("RenderTestcmd test unit", args);
 #if PYTHON_AVAILABLE == 1
     else if(mode == "functional")
-      return RENDERDOC_RunFunctionalTests(args);
+      return RENDERTEST_RunFunctionalTests(args);
 #endif
 
     std::cerr << "Unsupported test frame work '" << mode << "'" << std::endl << std::endl;
@@ -1017,9 +1017,9 @@ public:
   }
   virtual int Execute(const CaptureOptions &)
   {
-    RENDERDOC_SetDebugLogFile(conv(debuglog));
+    RENDERTEST_SetDebugLogFile(conv(debuglog));
 
-    ExecuteResult result = RENDERDOC_InjectIntoProcess(pid, env, conv(capfile), cmdopts, false);
+    ExecuteResult result = RENDERTEST_InjectIntoProcess(pid, env, conv(capfile), cmdopts, false);
 
     if(result.result.OK())
       return result.ident;
@@ -1116,7 +1116,7 @@ public:
       lz4 = false;
     }
 
-    ICaptureFile *capfile = RENDERDOC_OpenCaptureFile();
+    ICaptureFile *capfile = RENDERTEST_OpenCaptureFile();
 
     ResultDetails result = capfile->OpenFile(conv(rdc), "", NULL);
 
@@ -1278,13 +1278,13 @@ private:
 public:
   VulkanRegisterCommand() : Command()
   {
-    m_LayerNeedUpdate = RENDERDOC_NeedVulkanLayerRegistration(&m_Info);
+    m_LayerNeedUpdate = RENDERTEST_NeedVulkanLayerRegistration(&m_Info);
   }
   virtual void AddOptions(cmdline::parser &parser)
   {
     parser.add("explain", '\0',
                "Explain what the status of the layer registration is, and how it can be resolved");
-    parser.add("register", '\0', "Register RenderDoc's vulkan layer");
+    parser.add("register", '\0', "Register RenderTest's vulkan layer");
     parser.add("user", '\0',
                "Install layer registration at user-local level instead of system-wide");
     parser.add("system", '\0', "Install layer registration system-wide (requires admin privileges)");
@@ -1316,9 +1316,9 @@ public:
         {
           std::cerr << "** There is an unfixable problem with your vulkan layer configuration.\n\n"
                        "This is most commonly caused by having a distribution-provided package of "
-                       "RenderDoc "
-                       "installed, which cannot be modified by another build of RenderDoc.\n\n"
-                       "Please consult the RenderDoc documentation, or package/distribution "
+                       "RenderTest "
+                       "installed, which cannot be modified by another build of RenderTest.\n\n"
+                       "Please consult the RenderTest documentation, or package/distribution "
                        "documentation on "
                        "linux."
                     << std::endl;
@@ -1341,10 +1341,10 @@ public:
         std::cerr << std::endl;
 
         if(m_Info.flags & VulkanLayerFlags::OtherInstallsRegistered)
-          std::cerr << " - Non-matching RenderDoc layer(s) are registered." << std::endl;
+          std::cerr << " - Non-matching RenderTest layer(s) are registered." << std::endl;
 
         if(!(m_Info.flags & VulkanLayerFlags::ThisInstallRegistered))
-          std::cerr << " - This build's RenderDoc layer is not registered." << std::endl;
+          std::cerr << " - This build's RenderTest layer is not registered." << std::endl;
 
         std::cerr << std::endl;
 
@@ -1414,7 +1414,7 @@ public:
       }
       else
       {
-        std::cerr << "The RenderDoc vulkan layer appears to be correctly registered." << std::endl;
+        std::cerr << "The RenderTest vulkan layer appears to be correctly registered." << std::endl;
       }
 
       // don't do anything if we're just explaining the situation
@@ -1437,9 +1437,9 @@ public:
     }
     else if(user || system)
     {
-      RENDERDOC_UpdateVulkanLayerRegistration(system);
+      RENDERTEST_UpdateVulkanLayerRegistration(system);
 
-      if(RENDERDOC_NeedVulkanLayerRegistration(NULL))
+      if(RENDERTEST_NeedVulkanLayerRegistration(NULL))
       {
         std::cerr << "Vulkan layer registration not successful. ";
         if(system)
@@ -1493,8 +1493,8 @@ static int command_usage(std::string command)
               << std::endl
               << std::endl;
 
-  std::cerr << "Usage: renderdoccmd <command> [args ...]" << std::endl;
-  std::cerr << "Command line tool for capture & replay with RenderDoc." << std::endl << std::endl;
+  std::cerr << "Usage: RenderTestcmd <command> [args ...]" << std::endl;
+  std::cerr << "Command line tool for capture & replay with RenderTest." << std::endl << std::endl;
 
   std::cerr << "Command can be one of:" << std::endl;
 
@@ -1519,17 +1519,17 @@ static int command_usage(std::string command)
   }
   std::cerr << std::endl;
 
-  std::cerr << "To see details of any command, see 'renderdoccmd <command> --help'" << std::endl
+  std::cerr << "To see details of any command, see 'RenderTestcmd <command> --help'" << std::endl
             << std::endl;
 
-  std::cerr << "For more information, see <https://renderdoc.org/>." << std::endl;
+  std::cerr << "For more information, see <https://RenderTest.org/>." << std::endl;
 
   return 2;
 }
 
-int renderdoccmd(GlobalEnvironment &env, std::vector<std::string> &argv)
+int RenderTestcmd(GlobalEnvironment &env, std::vector<std::string> &argv)
 {
-  // we don't need this in renderdoccmd.
+  // we don't need this in RenderTestcmd.
   env.enumerateGPUs = false;
 
   vulkan = new VulkanRegisterCommand();
@@ -1609,7 +1609,7 @@ int renderdoccmd(GlobalEnvironment &env, std::vector<std::string> &argv)
 
     cmdline::parser cmd;
 
-    cmd.set_program_name("renderdoccmd");
+    cmd.set_program_name("RenderTestcmd");
     cmd.set_header(command);
 
     it->second->AddOptions(cmd);
@@ -1657,7 +1657,7 @@ int renderdoccmd(GlobalEnvironment &env, std::vector<std::string> &argv)
     cmd.parse_check(argv, true);
 
     CaptureOptions opts;
-    RENDERDOC_GetDefaultCaptureOptions(&opts);
+    RENDERTEST_GetDefaultCaptureOptions(&opts);
 
     if(it->second->IsCaptureCommand())
     {
@@ -1703,11 +1703,11 @@ int renderdoccmd(GlobalEnvironment &env, std::vector<std::string> &argv)
 
     args.append(it->second->ReplayArgs());
 
-    RENDERDOC_InitialiseReplay(env, args);
+    RENDERTEST_InitialiseReplay(env, args);
 
     int ret = it->second->Execute(opts);
 
-    RENDERDOC_ShutdownReplay();
+    RENDERTEST_ShutdownReplay();
 
     clean_up();
     return ret;
@@ -1722,12 +1722,12 @@ int renderdoccmd(GlobalEnvironment &env, std::vector<std::string> &argv)
   }
 }
 
-int renderdoccmd(GlobalEnvironment &env, int argc, char **c_argv)
+int RenderTestcmd(GlobalEnvironment &env, int argc, char **c_argv)
 {
   std::vector<std::string> argv;
   argv.resize(argc);
   for(int i = 0; i < argc; i++)
     argv[i] = c_argv[i];
 
-  return renderdoccmd(env, argv);
+  return RenderTestcmd(env, argv);
 }

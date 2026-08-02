@@ -64,7 +64,7 @@ static std::wstring conv(const std::string &str)
 
 HINSTANCE hInstance = NULL;
 
-#if defined(RELEASE) && RENDERDOC_OFFICIAL_BUILD
+#if defined(RELEASE) && RENDERTEST_OFFICIAL_BUILD
 #define CRASH_HANDLER 1
 #else
 #define CRASH_HANDLER 0
@@ -129,7 +129,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 void Daemonise()
 {
-  // nothing really to do, windows version of renderdoccmd is already 'detached'
+  // nothing really to do, windows version of RenderTestcmd is already 'detached'
 }
 
 WindowingData DisplayRemoteServerPreview(bool active, const rdcarray<WindowingSystem> &systems)
@@ -146,7 +146,7 @@ WindowingData DisplayRemoteServerPreview(bool active, const rdcarray<WindowingSy
       AdjustWindowRect(&wr, WS_OVERLAPPEDWINDOW, FALSE);
 
       HWND wnd =
-          CreateWindowEx(WS_EX_CLIENTEDGE, L"renderdoccmd", L"Remote Server Preview",
+          CreateWindowEx(WS_EX_CLIENTEDGE, L"RenderTestcmd", L"Remote Server Preview",
                          WS_OVERLAPPED | WS_CAPTION | WS_MINIMIZEBOX, CW_USEDEFAULT, CW_USEDEFAULT,
                          wr.right - wr.left, wr.bottom - wr.top, NULL, NULL, hInstance, NULL);
 
@@ -193,7 +193,7 @@ void DisplayRendererPreview(IReplayController *renderer, TextureDisplay &display
   RECT wr = {0, 0, (LONG)width, (LONG)height};
   AdjustWindowRect(&wr, WS_OVERLAPPEDWINDOW, FALSE);
 
-  HWND wnd = CreateWindowEx(WS_EX_CLIENTEDGE, L"renderdoccmd", L"renderdoccmd", WS_OVERLAPPEDWINDOW,
+  HWND wnd = CreateWindowEx(WS_EX_CLIENTEDGE, L"RenderTestcmd", L"RenderTestcmd", WS_OVERLAPPEDWINDOW,
                             CW_USEDEFAULT, CW_USEDEFAULT, wr.right - wr.left, wr.bottom - wr.top,
                             NULL, NULL, hInstance, NULL);
 
@@ -299,7 +299,7 @@ public:
           mz_zip_reader_file_stat(&zip, i, &zstat);
 
           const char *fn = zstat.m_filename;
-          // skip first directory because it's RenderDoc_Version_Bitness/
+          // skip first directory because it's RENDERTEST_Version_Bitness/
           fn = strchr(fn, '/');
           if(fn)
             fn++;
@@ -342,7 +342,7 @@ public:
           mz_zip_reader_file_stat(&zip, i, &zstat);
 
           const char *fn = zstat.m_filename;
-          // skip first directory because it's RenderDoc_Version_Bitness/
+          // skip first directory because it's RENDERTEST_Version_Bitness/
           fn = strchr(fn, '/');
           if(fn)
             fn++;
@@ -390,7 +390,7 @@ public:
           mz_zip_reader_file_stat(&zip, i, &zstat);
 
           const char *fn = zstat.m_filename;
-          // skip first directory because it's RenderDoc_Version_Bitness/
+          // skip first directory because it's RENDERTEST_Version_Bitness/
           fn = strchr(fn, '/');
           if(fn)
             fn++;
@@ -434,7 +434,7 @@ public:
     // run original UI exe (as admin still) and tell it an update succeeded so that it can do any last updates
     std::wstring cmdline = L"\"";
     cmdline += wide_path;
-    cmdline += L"/qrenderdoc.exe\" ";
+    cmdline += L"/qrendertest.exe\" ";
     if(successful)
       cmdline += L"--updatedone_admin";
     else
@@ -509,10 +509,10 @@ public:
           show.vt = VT_I4;
           show.lVal = SW_SHOWNORMAL;
 
-          std::wstring qrenderdoc = wide_path + L"/qrenderdoc.exe";
+          std::wstring qRenderTest = wide_path + L"/qrendertest.exe";
 
-          BSTR path = SysAllocStringLen(qrenderdoc.c_str(), (UINT)qrenderdoc.size());
-          memcpy(path, qrenderdoc.c_str(), qrenderdoc.size());
+          BSTR path = SysAllocStringLen(qRenderTest.c_str(), (UINT)qRenderTest.size());
+          memcpy(path, qRenderTest.c_str(), qRenderTest.size());
 
           VARIANT param = {};
           param.vt = VT_BSTR;
@@ -533,7 +533,7 @@ public:
 
     cmdline = L"\"";
     cmdline += wide_path;
-    cmdline += L"/qrenderdoc.exe\" --updatedone";
+    cmdline += L"/qrendertest.exe\" --updatedone";
     ZeroMemory(paramsAlloc, sizeof(wchar_t) * 512);
     wcscpy_s(paramsAlloc, 511, cmdline.c_str());
 
@@ -583,7 +583,7 @@ public:
 
     // create each parent directory separately, and use \\s
 
-    dumpFolder += L"RenderDoc";
+    dumpFolder += L"RenderTest";
     CreateDirectoryW(dumpFolder.c_str(), NULL);
 
     dumpFolder += L"\\dumps";
@@ -600,7 +600,7 @@ public:
       return 1;
     }
 
-    HANDLE readyEvent = CreateEventA(NULL, TRUE, FALSE, "RENDERDOC_CRASHHANDLE");
+    HANDLE readyEvent = CreateEventA(NULL, TRUE, FALSE, "RENDERTEST_CRASHHANDLE");
 
     if(readyEvent != NULL)
     {
@@ -690,7 +690,7 @@ public:
 
       std::string reportPath = conv(dumpFolder) + "\\" + dumpId + ".zip";
 
-      RENDERDOC_CreateBugReport(rdcstr(conv(wlogpath).c_str()), rdcstr(conv(wdump).c_str()),
+      RENDERTEST_CreateBugReport(rdcstr(conv(wlogpath).c_str()), rdcstr(conv(wdump).c_str()),
                                 rdcstr(reportPath.c_str()));
 
       for(size_t i = 0; i < reportPath.size(); i++)
@@ -729,7 +729,7 @@ public:
 
           ZeroMemory(paramsAlloc, sizeof(wchar_t) * 512);
 
-          _snwprintf_s(paramsAlloc, 511, 511, L"%s/qrenderdoc.exe --crash %s", exepath.c_str(),
+          _snwprintf_s(paramsAlloc, 511, 511, L"%s/qrendertest.exe --crash %s", exepath.c_str(),
                        destjson.c_str());
 
           PROCESS_INFORMATION pi;
@@ -814,12 +814,12 @@ public:
 
     wchar_t rdocpath[1024];
 
-    // fetch path to our matching renderdoc.dll
-    HMODULE rdoc = GetModuleHandleA("renderdoc.dll");
+    // fetch path to our matching RenderTest.dll
+    HMODULE rdoc = GetModuleHandleA("rendertest.dll");
 
     if(rdoc == NULL)
     {
-      std::cerr << "globalhook couldn't find renderdoc.dll!" << std::endl;
+      std::cerr << "globalhook couldn't find RenderTest.dll!" << std::endl;
       return 1;
     }
 
@@ -907,7 +907,7 @@ int main(int, char *)
     argv[i] = conv(std::wstring(wargv[i]));
 
   if(argv.empty())
-    argv.push_back("renderdoccmd");
+    argv.push_back("RenderTestcmd");
 
   LocalFree(wargv);
 
@@ -924,7 +924,7 @@ int main(int, char *)
   wc.hCursor = LoadCursor(NULL, IDC_ARROW);
   wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
   wc.lpszMenuName = NULL;
-  wc.lpszClassName = L"renderdoccmd";
+  wc.lpszClassName = L"RenderTestcmd";
   wc.hIconSm = LoadIcon(NULL, MAKEINTRESOURCE(IDI_ICON));
 
   if(!RegisterClassEx(&wc))
@@ -942,10 +942,10 @@ int main(int, char *)
   add_command("crashhandle", new CrashHandlerCommand());
 #endif
 
-  // this installs a global windows hook pointing at renderdocshim*.dll that filters all running
-  // processes and loads renderdoc.dll in the target one. In any other process it unloads as soon as
+  // this installs a global windows hook pointing at RenderTestshim*.dll that filters all running
+  // processes and loads RenderTest.dll in the target one. In any other process it unloads as soon as
   // possible
   add_command("globalhook", new GlobalHookCommand());
 
-  return renderdoccmd(env, argv);
+  return RenderTestcmd(env, argv);
 }

@@ -26,9 +26,9 @@
 #include <winsock2.h>
 #include "core/core.h"
 #include "hooks/hooks.h"
+#include "hooks/inline_hooks.h"
 #include "os/os_specific.h"
 #include "strings/string_utils.h"
-
 #include <string>
 
 typedef int(WSAAPI *PFN_WSASTARTUP)(__in WORD wVersionRequested, __out LPWSADATA lpWSAData);
@@ -90,6 +90,15 @@ public:
     LibraryHooks::RegisterLibraryHook("api-ms-win-core-processthreads-l1-1-1.dll", NULL);
     LibraryHooks::RegisterLibraryHook("api-ms-win-core-processthreads-l1-1-2.dll", NULL);
     LibraryHooks::RegisterLibraryHook("ws2_32.dll", NULL);
+
+    // If IAT patching is disabled (nikkiproxy_disable_hookall.txt), the
+    // HookedFunction CreateProcess hooks above never get patched in, so
+    // children would never be injected. Install direct inline hooks instead.
+    if(GetFileAttributesA("D:\\git\\renderdoc-nikki\\nikki\\nikkiproxy_disable_hookall.txt") !=
+       INVALID_FILE_ATTRIBUTES)
+    {
+      InstallCreateProcessInlineHooks();
+    }
 
     // we want to hook CreateProcess purely so that we can recursively insert our hooks (if we so
     // wish)
@@ -158,6 +167,103 @@ private:
   HookedFunction<PFN_CREATE_PROCESS_W> API111CreateProcessW;
   HookedFunction<PFN_CREATE_PROCESS_A> API112CreateProcessA;
   HookedFunction<PFN_CREATE_PROCESS_W> API112CreateProcessW;
+
+  // ---- inline (restore-call-repatch) CreateProcess hooks ----
+  // Installed when IAT patching is disabled (nikkiproxy_disable_hookall.txt) so
+  // children still get rendertest injected. Patches the kernel32 export entry
+  // directly; the hook restores the original bytes, calls the real function
+  // (via the saved pre-patch entry pointer) and re-patches.
+  static void *s_cpwFunc;
+  static uint8_t s_cpwOrig[12];
+  static void *s_cpaFunc;
+  static uint8_t s_cpaOrig[12];
+
+  static BOOL WINAPI CreateProcessW_inline_hook(
+      __in_opt LPCWSTR lpApplicationName, __inout_opt LPWSTR lpCommandLine,
+      __in_opt LPSECURITY_ATTRIBUTES lpProcessAttributes,
+      __in_opt LPSECURITY_ATTRIBUTES lpThreadAttributes, __in BOOL bInheritHandles,
+      __in DWORD dwCreationFlags, __in_opt LPVOID lpEnvironment, __in_opt LPCWSTR lpCurrentDirectory,
+      __in LPSTARTUPINFOW lpStartupInfo, __out LPPROCESS_INFORMATION lpProcessInformation)
+  {
+    RestoreInlineHookBytes(s_cpwFunc, s_cpwOrig);
+
+    BOOL ret = Hooked_CreateProcess(
+        "CreateProcessW",
+        [=](DWORD flags, LPVOID env, LPPROCESS_INFORMATION pi) {
+          return ((PFN_CREATE_PROCESS_W)s_cpwFunc)(lpApplicationName, lpCommandLine,
+                                                   lpProcessAttributes, lpThreadAttributes,
+                                                   bInheritHandles, flags, env, lpCurrentDirectory,
+                                                   lpStartupInfo, pi);
+        },
+        dwCreationFlags, ShouldInject(lpApplicationName, lpCommandLine), lpEnvironment,
+        lpProcessInformation);
+
+    PatchInlineHookBytes(s_cpwFunc, (void *)&CreateProcessW_inline_hook);
+
+    return ret;
+  }
+
+  static BOOL WINAPI CreateProcessA_inline_hook(
+      __in_opt LPCSTR lpApplicationName, __inout_opt LPSTR lpCommandLine,
+      __in_opt LPSECURITY_ATTRIBUTES lpProcessAttributes,
+      __in_opt LPSECURITY_ATTRIBUTES lpThreadAttributes, __in BOOL bInheritHandles,
+      __in DWORD dwCreationFlags, __in_opt LPVOID lpEnvironment, __in_opt LPCSTR lpCurrentDirectory,
+      __in LPSTARTUPINFOA lpStartupInfo, __out LPPROCESS_INFORMATION lpProcessInformation)
+  {
+    RestoreInlineHookBytes(s_cpaFunc, s_cpaOrig);
+
+    BOOL ret = Hooked_CreateProcess(
+        "CreateProcessA",
+        [=](DWORD flags, LPVOID env, LPPROCESS_INFORMATION pi) {
+          return ((PFN_CREATE_PROCESS_A)s_cpaFunc)(lpApplicationName, lpCommandLine,
+                                                   lpProcessAttributes, lpThreadAttributes,
+                                                   bInheritHandles, flags, env, lpCurrentDirectory,
+                                                   lpStartupInfo, pi);
+        },
+        dwCreationFlags, ShouldInject(lpApplicationName, lpCommandLine), lpEnvironment,
+        lpProcessInformation);
+
+    PatchInlineHookBytes(s_cpaFunc, (void *)&CreateProcessA_inline_hook);
+
+    return ret;
+  }
+
+  static void InstallCreateProcessInlineHooks()
+  {
+    static bool installed = false;
+    if(installed)
+      return;
+    installed = true;
+
+    // The game process (X6Game-Win64-Shipping.exe) doesn't spawn children we
+    // care about, and patching kernel32 entry points there is risky (ACE
+    // integrity checks). Only install in launcher/bootstrap processes.
+    {
+      wchar_t curExe[MAX_PATH] = {0};
+      GetModuleFileNameW(NULL, curExe, MAX_PATH - 1);
+      wchar_t *name = wcsrchr(curExe, L'\\');
+      if(name && _wcsicmp(name + 1, L"X6Game-Win64-Shipping.exe") == 0)
+        return;
+    }
+
+    HMODULE k32 = GetModuleHandleA("kernel32.dll");
+    if(k32 == NULL)
+      return;
+
+    s_cpwFunc = (void *)GetProcAddress(k32, "CreateProcessW");
+    if(s_cpwFunc)
+    {
+      SaveInlineHookBytes(s_cpwFunc, s_cpwOrig);
+      PatchInlineHookBytes(s_cpwFunc, (void *)&CreateProcessW_inline_hook);
+    }
+
+    s_cpaFunc = (void *)GetProcAddress(k32, "CreateProcessA");
+    if(s_cpaFunc)
+    {
+      SaveInlineHookBytes(s_cpaFunc, s_cpaOrig);
+      PatchInlineHookBytes(s_cpaFunc, (void *)&CreateProcessA_inline_hook);
+    }
+  }
 
   HookedFunction<PFN_CREATE_PROCESS_AS_USER_A> CreateProcessAsUserA;
   HookedFunction<PFN_CREATE_PROCESS_AS_USER_W> CreateProcessAsUserW;
@@ -251,7 +357,7 @@ private:
       while(*cur)
       {
         // if it is NOT the vulkan env var, append it to our block
-        if(wcsncmp(cur, CONCAT(L, RENDERDOC_VULKAN_LAYER_VAR), sizeof(RENDERDOC_VULKAN_LAYER_VAR) - 1))
+        if(wcsncmp(cur, CONCAT(L, RENDERTEST_VULKAN_LAYER_VAR), sizeof(RENDERTEST_VULKAN_LAYER_VAR) - 1))
         {
           envW += cur;
           envW.push_back(L'\0');
@@ -274,7 +380,7 @@ private:
       while(*cur)
       {
         // if it is NOT the vulkan env var, append it to our block
-        if(strncmp(cur, RENDERDOC_VULKAN_LAYER_VAR, sizeof(RENDERDOC_VULKAN_LAYER_VAR) - 1))
+        if(strncmp(cur, RENDERTEST_VULKAN_LAYER_VAR, sizeof(RENDERTEST_VULKAN_LAYER_VAR) - 1))
         {
           envA += cur;
           envA.push_back('\0');
@@ -298,13 +404,29 @@ private:
     {
       RDCDEBUG("Intercepting %s", entryPoint);
 
+      Heartbeat("CreateProcess: pre-inject");
+
+      // debug: record the child process command line so we can reproduce the launch
+      {
+        FILE *g = NULL;
+        fopen_s(&g, "D:\\git\\renderdoc-nikki\\nikki\\marker_launch.txt", "a");
+        if(g)
+        {
+          fprintf(g, "pid %d CreateProcess inject child pid=%u\n", (int)GetCurrentProcessId(),
+                  (unsigned int)lpProcessInformation->dwProcessId);
+          fclose(g);
+        }
+      }
+
       // inherit logfile and capture options
       rdcpair<RDResult, uint32_t> res = Process::InjectIntoProcess(
-          lpProcessInformation->dwProcessId, {}, RenderDoc::Inst().GetCaptureFileTemplate(),
-          RenderDoc::Inst().GetCaptureOptions(), false);
+          lpProcessInformation->dwProcessId, {}, RenderTest::Inst().GetCaptureFileTemplate(),
+          RenderTest::Inst().GetCaptureOptions(), false);
 
       if(res.first == ResultCode::Succeeded)
-        RenderDoc::Inst().AddChildProcess((uint32_t)lpProcessInformation->dwProcessId, res.second);
+        RenderTest::Inst().AddChildProcess((uint32_t)lpProcessInformation->dwProcessId, res.second);
+
+      Heartbeat("CreateProcess: post-inject");
     }
 
     if(resume)
@@ -326,7 +448,27 @@ private:
 
   static bool ShouldInject(LPCWSTR lpApplicationName, LPCWSTR lpCommandLine)
   {
-    if(!RenderDoc::Inst().GetCaptureOptions().hookIntoChildren)
+    if(!RenderTest::Inst().GetCaptureOptions().hookIntoChildren)
+      return false;
+
+    // Only inject the actual game process (X6Game-Win64-Shipping.exe).
+    // Injecting helper processes (CEF EpicWebHelper gpu-process, ACE-Setup,
+    // shader workers, ...) hangs them: rendertest's DllMain blocks on their
+    // loader lock and the game waits for the helper process -> deadlock.
+    bool isGame = false;
+    if(lpApplicationName)
+    {
+      rdcstr app = strlower(StringFormat::Wide2UTF8(lpApplicationName));
+      if(app.contains("x6game-win64-shipping.exe"))
+        isGame = true;
+    }
+    if(!isGame && lpCommandLine)
+    {
+      rdcstr cmd = strlower(StringFormat::Wide2UTF8(lpCommandLine));
+      if(cmd.contains("x6game-win64-shipping.exe"))
+        isGame = true;
+    }
+    if(!isGame)
       return false;
 
     bool inject = true;
@@ -337,7 +479,7 @@ private:
     {
       rdcstr app = strlower(StringFormat::Wide2UTF8(lpApplicationName));
 
-      if(app.contains("renderdoccmd.exe") || app.contains("qrenderdoc.exe"))
+      if(app.contains("rendertestcmd.exe") || app.contains("qrendertest.exe"))
       {
         inject = false;
       }
@@ -346,7 +488,7 @@ private:
     {
       rdcstr cmd = strlower(StringFormat::Wide2UTF8(lpCommandLine));
 
-      if(cmd.contains("renderdoccmd.exe") || cmd.contains("qrenderdoc.exe"))
+      if(cmd.contains("rendertestcmd.exe") || cmd.contains("qrendertest.exe"))
       {
         inject = false;
       }
@@ -357,7 +499,7 @@ private:
 
   static bool ShouldInject(LPCSTR lpApplicationName, LPCSTR lpCommandLine)
   {
-    if(!RenderDoc::Inst().GetCaptureOptions().hookIntoChildren)
+    if(!RenderTest::Inst().GetCaptureOptions().hookIntoChildren)
       return false;
 
     return ShouldInject(lpApplicationName ? StringFormat::UTF82Wide(lpApplicationName).c_str() : NULL,
@@ -392,6 +534,18 @@ private:
                                          __in LPSTARTUPINFOW lpStartupInfo,
                                          __out LPPROCESS_INFORMATION lpProcessInformation)
   {
+    // debug: record every CreateProcessW command line so we can capture the launcher token
+    {
+      FILE *g = NULL;
+      fopen_s(&g, "D:\\git\\renderdoc-nikki\\nikki\\marker_launch.txt", "a");
+      if(g)
+      {
+        fprintf(g, "pid %d CreateProcessW app=%ls cmd=%ls\n", (int)GetCurrentProcessId(),
+                lpApplicationName ? lpApplicationName : L"(null)",
+                lpCommandLine ? lpCommandLine : L"(null)");
+        fclose(g);
+      }
+    }
     return Hooked_CreateProcess(
         "CreateProcessW",
         [=](DWORD flags, LPVOID env, LPPROCESS_INFORMATION pi) {
@@ -617,3 +771,8 @@ private:
 };
 
 SysHook SysHook::syshooks;
+
+void *SysHook::s_cpwFunc = NULL;
+uint8_t SysHook::s_cpwOrig[12];
+void *SysHook::s_cpaFunc = NULL;
+uint8_t SysHook::s_cpaOrig[12];

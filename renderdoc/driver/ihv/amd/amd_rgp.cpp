@@ -46,12 +46,12 @@ uint64_t MakeTagFromMarker(const char *marker)
 
 const char *AMDRGPControl::GetBeginMarker()
 {
-  return "BeginRenderDocRGPCapture======";
+  return "BeginRenderTestRGPCapture======";
 }
 
 const char *AMDRGPControl::GetEndMarker()
 {
-  return "EndRenderDocRGPCapture======";
+  return "EndRenderTestRGPCapture======";
 }
 
 uint64_t AMDRGPControl::GetBeginTag()

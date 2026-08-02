@@ -26,6 +26,10 @@
 #include "hooks.h"
 #include "common/common.h"
 
+#ifdef RDOC_WIN32
+#include <windows.h>
+#endif
+
 static rdcarray<LibraryHook *> &LibList()
 {
   static rdcarray<LibraryHook *> libs;
@@ -41,8 +45,19 @@ void LibraryHooks::RegisterHooks()
 {
   BeginHookRegistration();
 
-  for(LibraryHook *lib : LibList())
-    lib->RegisterHooks();
+  // file switch: disable all driver library hooks (d3d12/d3d11/dxgi/...), keeping
+  // only the kernel32-level LoadLibrary/GetProcAddress hooks, for bisection of
+  // what interferes with the game's D3D12 device initialisation.
+  bool disableDriver =
+      (GetFileAttributesA(
+           "D:\\git\\renderdoc-nikki\\nikki\\nikkiproxy_disable_driver_hooks.txt") !=
+       INVALID_FILE_ATTRIBUTES);
+
+  if(!disableDriver)
+  {
+    for(LibraryHook *lib : LibList())
+      lib->RegisterHooks();
+  }
 
   EndHookRegistration();
 }

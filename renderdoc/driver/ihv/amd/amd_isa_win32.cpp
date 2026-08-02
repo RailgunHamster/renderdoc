@@ -177,10 +177,10 @@ rdcstr DisassembleDXBC(const bytebuf &shaderBytes, const rdcstr &target)
 
 ; Currently )" NEW_DLL_NAME
            R"( from AMD's driver package is required for GCN disassembly and it cannot be
-; distributed with RenderDoc.
+; distributed with RenderTest.
 
 ; To see instructions on how to download and configure it on your system, go to:
-; https://github.com/baldurk/renderdoc/wiki/GCN-ISA)";
+; https://github.com/baldurk/RenderTest/wiki/GCN-ISA)";
 
   // if shaderBytes is empty we're testing support, so return empty string - indicating no error
   // initialising

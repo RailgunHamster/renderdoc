@@ -46,13 +46,13 @@ RDOC_CONFIG(bool, Vulkan_Debug_EnableGPUVA, false,
 // capture and replay, and the safer default is not to replay as if we were the original app but
 // with a slightly different workload. So instead we trample what the app reported and put in our
 // own info.
-static VkApplicationInfo renderdocAppInfo = {
+static VkApplicationInfo RenderTestAppInfo = {
     VK_STRUCTURE_TYPE_APPLICATION_INFO,
     NULL,
-    "RenderDoc Capturing App",
-    VK_MAKE_VERSION(RENDERDOC_VERSION_MAJOR, RENDERDOC_VERSION_MINOR, 0),
-    "RenderDoc",
-    VK_MAKE_VERSION(RENDERDOC_VERSION_MAJOR, RENDERDOC_VERSION_MINOR, 0),
+    "RenderTest Capturing App",
+    VK_MAKE_VERSION(RENDERTEST_VERSION_MAJOR, RENDERTEST_VERSION_MINOR, 0),
+    "RenderTest",
+    VK_MAKE_VERSION(RENDERTEST_VERSION_MAJOR, RENDERTEST_VERSION_MINOR, 0),
     VK_API_VERSION_1_0,
 };
 
@@ -117,7 +117,7 @@ static void StripUnwantedLayers(rdcarray<rdcstr> &Layers)
 {
   Layers.removeIf([](const rdcstr &layer) {
     // don't try and create our own layer on replay!
-    if(layer == RENDERDOC_VULKAN_LAYER_NAME)
+    if(layer == RENDERTEST_VULKAN_LAYER_NAME)
     {
       return true;
     }
@@ -443,7 +443,7 @@ RDResult WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVersion
       VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
       instNext,
       0,
-      &renderdocAppInfo,
+      &RenderTestAppInfo,
       (uint32_t)params.Layers.size(),
       layerscstr,
       (uint32_t)params.Extensions.size(),
@@ -451,18 +451,18 @@ RDResult WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVersion
   };
 
   if(params.APIVersion >= VK_API_VERSION_1_0)
-    renderdocAppInfo.apiVersion = params.APIVersion;
+    RenderTestAppInfo.apiVersion = params.APIVersion;
 
-  m_EnabledExtensions.vulkanVersion = renderdocAppInfo.apiVersion;
+  m_EnabledExtensions.vulkanVersion = RenderTestAppInfo.apiVersion;
 
   if(!Vulkan_Debug_ReplaceAppInfo())
   {
-    // if we're not replacing the app info, set renderdocAppInfo's parameters to the ones from the
+    // if we're not replacing the app info, set RenderTestAppInfo's parameters to the ones from the
     // capture
-    renderdocAppInfo.pEngineName = params.EngineName.c_str();
-    renderdocAppInfo.engineVersion = params.EngineVersion;
-    renderdocAppInfo.pApplicationName = params.AppName.c_str();
-    renderdocAppInfo.applicationVersion = params.AppVersion;
+    RenderTestAppInfo.pEngineName = params.EngineName.c_str();
+    RenderTestAppInfo.engineVersion = params.EngineVersion;
+    RenderTestAppInfo.pApplicationName = params.AppName.c_str();
+    RenderTestAppInfo.applicationVersion = params.AppVersion;
   }
 
   m_Instance = VK_NULL_HANDLE;
@@ -471,7 +471,7 @@ RDResult WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVersion
 
 #undef CheckExt
 #define CheckExt(name, ver)                                                                           \
-  if(!strcmp(instinfo.ppEnabledExtensionNames[i], "VK_" #name) || renderdocAppInfo.apiVersion >= ver) \
+  if(!strcmp(instinfo.ppEnabledExtensionNames[i], "VK_" #name) || RenderTestAppInfo.apiVersion >= ver) \
   {                                                                                                   \
     m_EnabledExtensions.ext_##name = true;                                                            \
   }
@@ -582,7 +582,7 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
 
   const bool internalInstance =
       (pCreateInfo->pApplicationInfo && pCreateInfo->pApplicationInfo->pApplicationName &&
-       rdcstr(pCreateInfo->pApplicationInfo->pApplicationName) == "RenderDoc forced instance");
+       rdcstr(pCreateInfo->pApplicationInfo->pApplicationName) == "RenderTest forced instance");
 
   VkLayerInstanceCreateInfo *layerCreateInfo = (VkLayerInstanceCreateInfo *)pCreateInfo->pNext;
 
@@ -615,14 +615,14 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
 #if DISABLED(RDOC_ANDROID)
   for(uint32_t i = 0; i < modifiedCreateInfo.enabledLayerCount; i++)
   {
-    if(rdcstr(modifiedCreateInfo.ppEnabledLayerNames[i]) == RENDERDOC_VULKAN_LAYER_NAME)
+    if(rdcstr(modifiedCreateInfo.ppEnabledLayerNames[i]) == RENDERTEST_VULKAN_LAYER_NAME)
     {
       // see if any debug report callbacks were passed in the pNext chain
       VkDebugReportCallbackCreateInfoEXT *report =
           (VkDebugReportCallbackCreateInfoEXT *)pCreateInfo->pNext;
 
       rdcstr msg =
-          "RenderDoc's layer should NEVER be activated manually. Do not include it in "
+          "RenderTest's layer should NEVER be activated manually. Do not include it in "
           "vkCreateInstance's instance layers.";
 
       RDCERR("%s", msg.c_str());
@@ -666,17 +666,17 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
   {
     if(!IsSupportedExtension(modifiedCreateInfo.ppEnabledExtensionNames[i]))
     {
-      RDCERR("RenderDoc does not support instance extension '%s'.",
+      RDCERR("RenderTest does not support instance extension '%s'.",
              modifiedCreateInfo.ppEnabledExtensionNames[i]);
       RDCERR(
           "For KHR/EXT extensions file an issue on github to request support: "
-          "https://github.com/baldurk/renderdoc");
+          "https://github.com/baldurk/RenderTest");
 
       // see if any debug report callbacks were passed in the pNext chain
       VkDebugReportCallbackCreateInfoEXT *report =
           (VkDebugReportCallbackCreateInfoEXT *)pCreateInfo->pNext;
 
-      rdcstr msg = StringFormat::Fmt("RenderDoc does not support requested instance extension: %s.",
+      rdcstr msg = StringFormat::Fmt("RenderTest does not support requested instance extension: %s.",
                                      modifiedCreateInfo.ppEnabledExtensionNames[i]);
 
       while(report)
@@ -799,7 +799,7 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
 
   bool brokenGetDeviceProcAddr = false;
 
-  // override applicationInfo with RenderDoc's, but preserve apiVersion
+  // override applicationInfo with RenderTest's, but preserve apiVersion
   if(modifiedCreateInfo.pApplicationInfo)
   {
     if(modifiedCreateInfo.pApplicationInfo->pEngineName &&
@@ -807,11 +807,11 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
       brokenGetDeviceProcAddr = true;
 
     if(modifiedCreateInfo.pApplicationInfo->apiVersion >= VK_API_VERSION_1_0)
-      renderdocAppInfo.apiVersion = modifiedCreateInfo.pApplicationInfo->apiVersion;
+      RenderTestAppInfo.apiVersion = modifiedCreateInfo.pApplicationInfo->apiVersion;
 
     if(Vulkan_Debug_ReplaceAppInfo())
     {
-      modifiedCreateInfo.pApplicationInfo = &renderdocAppInfo;
+      modifiedCreateInfo.pApplicationInfo = &RenderTestAppInfo;
     }
   }
 
@@ -826,7 +826,7 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
   }
 
   // if we forced on API validation, it's also available
-  m_LayersEnabled[VkCheckLayer_unique_objects] |= RenderDoc::Inst().GetCaptureOptions().apiValidation;
+  m_LayersEnabled[VkCheckLayer_unique_objects] |= RenderTest::Inst().GetCaptureOptions().apiValidation;
 
   VkResult ret = createFunc(&modifiedCreateInfo, NULL, pInstance);
 
@@ -850,9 +850,9 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
 
   record->instDevInfo->vulkanVersion = VK_API_VERSION_1_0;
 
-  // whether or not we're using it, we updated the apiVersion in renderdocAppInfo
-  if(renderdocAppInfo.apiVersion > VK_API_VERSION_1_0)
-    record->instDevInfo->vulkanVersion = renderdocAppInfo.apiVersion;
+  // whether or not we're using it, we updated the apiVersion in RenderTestAppInfo
+  if(RenderTestAppInfo.apiVersion > VK_API_VERSION_1_0)
+    record->instDevInfo->vulkanVersion = RenderTestAppInfo.apiVersion;
 
   std::set<rdcstr> availablePhysDeviceFunctions;
 
@@ -914,7 +914,7 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
   }
   else
   {
-    RenderDoc::Inst().AddDeviceFrameCapturer(LayerDisp(m_Instance), this);
+    RenderTest::Inst().AddDeviceFrameCapturer(LayerDisp(m_Instance), this);
   }
 
   m_DbgReportCallback = VK_NULL_HANDLE;
@@ -1121,7 +1121,7 @@ void WrappedVulkan::vkDestroyInstance(VkInstance instance, const VkAllocationCal
   // application is well behaved. If not, we just leak.
 
   ObjDisp(m_Instance)->DestroyInstance(Unwrap(m_Instance), NULL);
-  RenderDoc::Inst().RemoveDeviceFrameCapturer(LayerDisp(m_Instance));
+  RenderTest::Inst().RemoveDeviceFrameCapturer(LayerDisp(m_Instance));
 
   GetResourceManager()->ReleaseWrappedResource(m_Instance);
   m_Instance = VK_NULL_HANDLE;
@@ -1636,7 +1636,7 @@ bool WrappedVulkan::SelectGraphicsComputeQueue(const rdcarray<VkQueueFamilyPrope
     {
       SET_ERROR_RESULT(
           m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
-          "Can't add a queue with required properties for RenderDoc! Unsupported configuration");
+          "Can't add a queue with required properties for RenderTest! Unsupported configuration");
       return false;
     }
 
@@ -2234,7 +2234,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
     {
       SET_ERROR_RESULT(
           m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
-          "Can't add a queue with required properties for RenderDoc! Unsupported configuration");
+          "Can't add a queue with required properties for RenderTest! Unsupported configuration");
       return false;
     }
 
@@ -3872,7 +3872,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
           "robustBufferAccess is available, but cannot be enabled due to "
           "robustBufferAccessUpdateAfterBind not being avilable and some UpdateAfterBind features "
           "being enabled. "
-          "out of bounds access due to bugs in application or RenderDoc may cause crashes");
+          "out of bounds access due to bugs in application or RenderTest may cause crashes");
     }
     else
     {
@@ -3882,7 +3882,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       else
         RDCWARN(
             "robustBufferAccess = false, out of bounds access due to bugs in application or "
-            "RenderDoc may cause crashes");
+            "RenderTest may cause crashes");
     }
 
     if(availFeatures.shaderInt64)
@@ -4697,7 +4697,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
         VkDebugUtilsObjectTagInfoEXT tagInfo = {VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_TAG_INFO_EXT};
         tagInfo.objectType = VK_OBJECT_TYPE_INSTANCE;
         tagInfo.objectHandle = uint64_t(Unwrap(m_Instance));
-        tagInfo.tagName = RENDERDOC_DescriptorsReservation_UUID;
+        tagInfo.tagName = RENDERTEST_DescriptorsReservation_UUID;
         tagInfo.tagSize = sizeof(bool);
         bool yes = true;
         tagInfo.pTag = &yes;
@@ -4731,14 +4731,14 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
   {
     if(!IsSupportedExtension(createInfo.ppEnabledExtensionNames[i]))
     {
-      RDCERR("RenderDoc does not support device extension '%s'.",
+      RDCERR("RenderTest does not support device extension '%s'.",
              createInfo.ppEnabledExtensionNames[i]);
       RDCERR(
           "For KHR/EXT extensions file an issue on github to request support: "
-          "https://github.com/baldurk/renderdoc");
+          "https://github.com/baldurk/RenderTest");
 
       SendUserDebugMessage(
-          StringFormat::Fmt("RenderDoc does not support requested device extension: %s.",
+          StringFormat::Fmt("RenderTest does not support requested device extension: %s.",
                             createInfo.ppEnabledExtensionNames[i]));
 
       return VK_ERROR_EXTENSION_NOT_PRESENT;
@@ -4747,7 +4747,7 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
 
   if(m_Device != VK_NULL_HANDLE)
   {
-    SendUserDebugMessage("RenderDoc does not support multiple simultaneous logical devices.");
+    SendUserDebugMessage("RenderTest does not support multiple simultaneous logical devices.");
     return VK_ERROR_INITIALIZATION_FAILED;
   }
 
@@ -4943,7 +4943,7 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
         "robustBufferAccess is available, but cannot be enabled due to "
         "robustBufferAccessUpdateAfterBind not being avilable and some UpdateAfterBind features "
         "being enabled. "
-        "out of bounds access due to bugs in application or RenderDoc may cause crashes");
+        "out of bounds access due to bugs in application or RenderTest may cause crashes");
 
     for(const char *e : Extensions)
     {
@@ -4961,7 +4961,7 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
     else
       RDCWARN(
           "robustBufferAccess = false, out of bounds access due to bugs in application or "
-          "RenderDoc may cause crashes");
+          "RenderTest may cause crashes");
   }
 
   // enable this feature as it's needed at capture time to save MSAA initial states
@@ -5397,10 +5397,10 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
     if(m_PhysicalDeviceData.driverProps.driverID == VK_DRIVER_ID_MESA_RADV &&
        m_PhysicalDeviceData.props.vendorID == 0x1002 && m_PhysicalDeviceData.props.deviceID == 0x163F)
     {
-      CaptureOptions opts = RenderDoc::Inst().GetCaptureOptions();
+      CaptureOptions opts = RenderTest::Inst().GetCaptureOptions();
       if(opts.softMemoryLimit == 0)
         opts.softMemoryLimit = 200;
-      RenderDoc::Inst().SetCaptureOptions(opts);
+      RenderTest::Inst().SetCaptureOptions(opts);
       RDCLOG("Forcing 200MB soft memory limit");
     }
 

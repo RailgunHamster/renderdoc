@@ -99,39 +99,39 @@ bool GetKeyState(int key)
 {
   int vk = 0;
 
-  if(key >= eRENDERDOC_Key_A && key <= eRENDERDOC_Key_Z)
+  if(key >= eRENDERTEST_Key_A && key <= eRENDERTEST_Key_Z)
     vk = key;
-  if(key >= eRENDERDOC_Key_0 && key <= eRENDERDOC_Key_9)
+  if(key >= eRENDERTEST_Key_0 && key <= eRENDERTEST_Key_9)
     vk = key;
 
   switch(key)
   {
-    case eRENDERDOC_Key_Divide: vk = VK_DIVIDE; break;
-    case eRENDERDOC_Key_Multiply: vk = VK_MULTIPLY; break;
-    case eRENDERDOC_Key_Subtract: vk = VK_SUBTRACT; break;
-    case eRENDERDOC_Key_Plus: vk = VK_ADD; break;
-    case eRENDERDOC_Key_F1: vk = VK_F1; break;
-    case eRENDERDOC_Key_F2: vk = VK_F2; break;
-    case eRENDERDOC_Key_F3: vk = VK_F3; break;
-    case eRENDERDOC_Key_F4: vk = VK_F4; break;
-    case eRENDERDOC_Key_F5: vk = VK_F5; break;
-    case eRENDERDOC_Key_F6: vk = VK_F6; break;
-    case eRENDERDOC_Key_F7: vk = VK_F7; break;
-    case eRENDERDOC_Key_F8: vk = VK_F8; break;
-    case eRENDERDOC_Key_F9: vk = VK_F9; break;
-    case eRENDERDOC_Key_F10: vk = VK_F10; break;
-    case eRENDERDOC_Key_F11: vk = VK_F11; break;
-    case eRENDERDOC_Key_F12: vk = VK_F12; break;
-    case eRENDERDOC_Key_Home: vk = VK_HOME; break;
-    case eRENDERDOC_Key_End: vk = VK_END; break;
-    case eRENDERDOC_Key_Insert: vk = VK_INSERT; break;
-    case eRENDERDOC_Key_Delete: vk = VK_DELETE; break;
-    case eRENDERDOC_Key_PageUp: vk = VK_PRIOR; break;
-    case eRENDERDOC_Key_PageDn: vk = VK_NEXT; break;
-    case eRENDERDOC_Key_Backspace: vk = VK_BACK; break;
-    case eRENDERDOC_Key_Tab: vk = VK_TAB; break;
-    case eRENDERDOC_Key_PrtScrn: vk = VK_SNAPSHOT; break;
-    case eRENDERDOC_Key_Pause: vk = VK_PAUSE; break;
+    case eRENDERTEST_Key_Divide: vk = VK_DIVIDE; break;
+    case eRENDERTEST_Key_Multiply: vk = VK_MULTIPLY; break;
+    case eRENDERTEST_Key_Subtract: vk = VK_SUBTRACT; break;
+    case eRENDERTEST_Key_Plus: vk = VK_ADD; break;
+    case eRENDERTEST_Key_F1: vk = VK_F1; break;
+    case eRENDERTEST_Key_F2: vk = VK_F2; break;
+    case eRENDERTEST_Key_F3: vk = VK_F3; break;
+    case eRENDERTEST_Key_F4: vk = VK_F4; break;
+    case eRENDERTEST_Key_F5: vk = VK_F5; break;
+    case eRENDERTEST_Key_F6: vk = VK_F6; break;
+    case eRENDERTEST_Key_F7: vk = VK_F7; break;
+    case eRENDERTEST_Key_F8: vk = VK_F8; break;
+    case eRENDERTEST_Key_F9: vk = VK_F9; break;
+    case eRENDERTEST_Key_F10: vk = VK_F10; break;
+    case eRENDERTEST_Key_F11: vk = VK_F11; break;
+    case eRENDERTEST_Key_F12: vk = VK_F12; break;
+    case eRENDERTEST_Key_Home: vk = VK_HOME; break;
+    case eRENDERTEST_Key_End: vk = VK_END; break;
+    case eRENDERTEST_Key_Insert: vk = VK_INSERT; break;
+    case eRENDERTEST_Key_Delete: vk = VK_DELETE; break;
+    case eRENDERTEST_Key_PageUp: vk = VK_PRIOR; break;
+    case eRENDERTEST_Key_PageDn: vk = VK_NEXT; break;
+    case eRENDERTEST_Key_Backspace: vk = VK_BACK; break;
+    case eRENDERTEST_Key_Tab: vk = VK_TAB; break;
+    case eRENDERTEST_Key_PrtScrn: vk = VK_SNAPSHOT; break;
+    case eRENDERTEST_Key_Pause: vk = VK_PAUSE; break;
     default: break;
   }
 
@@ -286,7 +286,7 @@ rdcstr GetReplayAppFilename()
 
   rdcstr path = StringFormat::Wide2UTF8(curFile);
   path = get_dirname(path);
-  rdcstr exe = path + "/qrenderdoc.exe";
+  rdcstr exe = path + "/qrendertest.exe";
 
   FILE *f = FileIO::fopen(exe, FileIO::ReadBinary);
   if(f)
@@ -295,9 +295,9 @@ rdcstr GetReplayAppFilename()
     return exe;
   }
 
-  // if qrenderdoc.exe doesn't live in the same dir, we must be in x86/
+  // if qrendertest.exe doesn't live in the same dir, we must be in x86/
   // so look one up the tree.
-  exe = path + "/../qrenderdoc.exe";
+  exe = path + "/../qrendertest.exe";
 
   f = FileIO::fopen(exe, FileIO::ReadBinary);
   if(f)
@@ -307,13 +307,13 @@ rdcstr GetReplayAppFilename()
   }
 
   // if we didn't find the exe at all, we must not be in a standard
-  // distributed renderdoc package. On windows we can check in the registry
+  // distributed RenderTest package. On windows we can check in the registry
   // to try and find the installed path.
 
   DWORD type = 0;
   DWORD dataSize = sizeof(curFile);
   RDCEraseEl(curFile);
-  RegGetValueW(HKEY_CLASSES_ROOT, L"RenderDoc.RDCCapture.1\\DefaultIcon", NULL, RRF_RT_ANY, &type,
+  RegGetValueW(HKEY_CLASSES_ROOT, L"RenderTest.RDCCapture.1\\DefaultIcon", NULL, RRF_RT_ANY, &type,
                (void *)curFile, &dataSize);
 
   if(type == REG_EXPAND_SZ || type == REG_SZ)
@@ -355,7 +355,7 @@ void GetDefaultFiles(const rdcstr &logBaseName, rdcstr &capture_filename, rdcstr
 
   wchar_t *filename_start = temp_filename + wcslen(temp_filename);
 
-  wsprintf(filename_start, L"RenderDoc\\%ls_%04d.%02d.%02d_%02d.%02d.rdc", mod, 1900 + now.tm_year,
+  wsprintf(filename_start, L"RenderTest\\%ls_%04d.%02d.%02d_%02d.%02d.rdc", mod, 1900 + now.tm_year,
            now.tm_mon + 1, now.tm_mday, now.tm_hour, now.tm_min);
 
   capture_filename = StringFormat::Wide2UTF8(temp_filename);
@@ -364,7 +364,7 @@ void GetDefaultFiles(const rdcstr &logBaseName, rdcstr &capture_filename, rdcstr
 
   rdcwstr wbase = StringFormat::UTF82Wide(logBaseName);
 
-  wsprintf(filename_start, L"RenderDoc\\%ls_%04d.%02d.%02d_%02d.%02d.%02d.log", wbase.c_str(),
+  wsprintf(filename_start, L"RenderTest\\%ls_%04d.%02d.%02d_%02d.%02d.%02d.log", wbase.c_str(),
            1900 + now.tm_year, now.tm_mon + 1, now.tm_mday, now.tm_hour, now.tm_min, now.tm_sec);
 
   logging_filename = StringFormat::Wide2UTF8(temp_filename);
@@ -400,7 +400,7 @@ rdcstr GetAppFolderFilename(const rdcstr &filename)
   while(ret.back() == '/' || ret.back() == '\\')
     ret.pop_back();
 
-  ret += "\\renderdoc\\" + filename;
+  ret += "\\RenderTest\\" + filename;
 
   CreateParentDirectory(ret);
 

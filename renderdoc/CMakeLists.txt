@@ -662,6 +662,10 @@ if(INTERNAL_SELF_CAPTURE)
     set_target_properties(renderdoc PROPERTIES OUTPUT_NAME "rdocself")
 endif()
 
+if(WIN32)
+    set_target_properties(renderdoc PROPERTIES OUTPUT_NAME ${RDOC_BASE_NAME})
+endif()
+
 if(ANDROID)
     set(RDOC_LINK_FLAGS "-Wl,--undefined,force_include_libentry -Wl,--build-id")
     if(ENABLE_ASAN)

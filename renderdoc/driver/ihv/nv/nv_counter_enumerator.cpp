@@ -245,7 +245,7 @@ void NVCounterEnumerator::Impl::InitEnumerateCounters()
       {
         //-----------------
         // Filter out metrics that count "cycles".
-        // The RenderDoc replay loop is not designed for reproducing representative cycle counts.
+        // The RenderTest replay loop is not designed for reproducing representative cycle counts.
         auto itr =
             std::find_if(dimUnits.begin(), dimUnits.end(), [](const NVPW_DimUnitFactor &factor) {
               switch(factor.dimUnit)
@@ -329,7 +329,7 @@ void NVCounterEnumerator::Impl::InitEnumerateCounters()
                  }).c_str());
 
       //-----------------
-      // Convert Perf SDK units to Renderdoc units (only works for limited subset of units)
+      // Convert Perf SDK units to RenderTest units (only works for limited subset of units)
       desc.unit = ToCounterUnit(dimUnits);
 
       //-----------------

@@ -27,6 +27,7 @@
 #include <windows.h>
 
 #include <tlhelp32.h>
+#include <intrin.h>
 #include <algorithm>
 #include <functional>
 #include <map>
@@ -34,6 +35,7 @@
 #include "common/common.h"
 #include "common/threading.h"
 #include "hooks/hooks.h"
+#include "hooks/inline_hooks.h"
 #include "os/os_specific.h"
 #include "strings/string_utils.h"
 
@@ -182,11 +184,11 @@ struct CachedHookData
     // fraps seems to non-safely modify the assembly around the hook function, if
     // we modify its import descriptors it leads to a crash as it hooks OUR functions.
     // instead, skip modifying the import descriptors, it will hook the 'real' d3d functions
-    // and we can call them and have fraps + renderdoc playing nicely together.
+    // and we can call them and have fraps + RenderTest playing nicely together.
     // we also exclude some other overlay renderers here, such as steam's
     //
     // Also we exclude ourselves here - just in case the application has already loaded
-    // renderdoc.dll, or tries to load it.
+    // RenderTest.dll, or tries to load it.
     if(strstr(lowername, "fraps") || strstr(lowername, "gameoverlayrenderer") ||
        strstr(lowername, STRINGIZE(RDOC_BASE_NAME) ".dll") == lowername)
       return;
@@ -547,6 +549,14 @@ static void ForAllModules(std::function<void(const MODULEENTRY32 &me32)> callbac
       // retry if error is ERROR_BAD_LENGTH
       if(err == ERROR_BAD_LENGTH)
         continue;
+
+      // under the loader lock the module list can be in a partial state; fast-fail
+      // to avoid a deadlock instead of retrying
+      if(err == ERROR_PARTIAL_COPY)
+      {
+        RDCWARN("ERROR_PARTIAL_COPY - likely under loader lock, skipping module enumeration");
+        return;
+      }
     }
 
     // didn't retry, or succeeded
@@ -684,7 +694,22 @@ HMODULE WINAPI Hooked_LoadLibraryExA(LPCSTR lpLibFileName, HANDLE fileHandle, DW
   DWORD err = GetLastError();
 
   if(dohook && mod && !IsAPISet(lpLibFileName))
-    HookAllModules();
+  {
+    // HookAllModules() walks ALL modules and patches their import tables.
+    // Doing this on every LoadLibrary can deadlock with the game's own
+    // loader activity (observed: game freezes in "enter world" when a d3d12
+    // LoadLibrary triggers a full walk). Run it once (at registration time
+    // the game's core modules are already patched); later loads are left to
+    // the real functions.
+    static bool ranFullWalk = false;
+    if(!ranFullWalk)
+    {
+      ranFullWalk = true;
+      Heartbeat("LoadLibrary: pre-HookAllModules");
+      HookAllModules();
+      Heartbeat("LoadLibrary: post-HookAllModules");
+    }
+  }
 
   SetLastError(err);
 
@@ -693,6 +718,22 @@ HMODULE WINAPI Hooked_LoadLibraryExA(LPCSTR lpLibFileName, HANDLE fileHandle, DW
 
 HMODULE WINAPI Hooked_LoadLibraryExW(LPCWSTR lpLibFileName, HANDLE fileHandle, DWORD flags)
 {
+  // debug: log d3d/dxgi related library loads
+  if(lpLibFileName && (wcsstr(lpLibFileName, L"d3d12") || wcsstr(lpLibFileName, L"d3d11") ||
+                       wcsstr(lpLibFileName, L"dxgi") || wcsstr(lpLibFileName, L"d3d10")))
+  {
+    FILE *g = NULL;
+    fopen_s(&g, "D:\\git\\renderdoc-nikki\\nikki\\marker_loadlib.txt", "a");
+    if(g)
+    {
+      char narrow[256] = {0};
+      WideCharToMultiByte(CP_ACP, 0, lpLibFileName, -1, narrow, sizeof(narrow), NULL, NULL);
+      fprintf(g, "pid %d t=%llu LoadLibrary(%s) flags=0x%x\n", (int)GetCurrentProcessId(),
+              (unsigned long long)GetTickCount64(), narrow, (unsigned int)flags);
+      fclose(g);
+    }
+  }
+
   bool dohook = true;
 
   if(s_HookData->libraryIntercept)
@@ -740,7 +781,17 @@ HMODULE WINAPI Hooked_LoadLibraryExW(LPCWSTR lpLibFileName, HANDLE fileHandle, D
   DWORD err = GetLastError();
 
   if(dohook && mod && !IsAPISet(lpLibFileName))
-    HookAllModules();
+  {
+    // run the full module walk only once (see Hooked_LoadLibraryExW)
+    static bool ranFullWalk = false;
+    if(!ranFullWalk)
+    {
+      ranFullWalk = true;
+      Heartbeat("LoadLibraryW: pre-HookAllModules");
+      HookAllModules();
+      Heartbeat("LoadLibraryW: post-HookAllModules");
+    }
+  }
 
   SetLastError(err);
 
@@ -766,6 +817,27 @@ FARPROC WINAPI Hooked_GetProcAddress(HMODULE mod, const LPCSTR func)
 {
   if(mod == NULL || func == NULL || mod == s_HookData->ownmodule)
     return GetProcAddress(mod, func);
+
+  // debug: log all d3d/dxgi related lookups
+  if(!OrdinalAsString((void *)func))
+  {
+    const char *f = (const char *)func;
+    if(strstr(f, "D3D12") || strstr(f, "D3D11") || strstr(f, "DXGI") || strstr(f, "CreateSwapChain"))
+    {
+      char modname[128] = "?";
+      GetModuleFileNameA(mod, modname, sizeof(modname));
+
+      FILE *g = NULL;
+      fopen_s(&g, "D:\\git\\renderdoc-nikki\\nikki\\marker_getproc.txt", "a");
+      if(g)
+      {
+        fprintf(g, "pid %d t=%llu GetProcAddress(%s, %s)\n", (int)GetCurrentProcessId(),
+                (unsigned long long)GetTickCount64(),
+                strrchr(modname, '\\') ? strrchr(modname, '\\') + 1 : modname, f);
+        fclose(g);
+      }
+    }
+  }
 
 #if ENABLED(VERBOSE_DEBUG_HOOK)
   if(OrdinalAsString((void *)func))
@@ -853,6 +925,21 @@ FARPROC WINAPI Hooked_GetProcAddress(HMODULE mod, const LPCSTR func)
       {
         FARPROC realfunc = GetProcAddress(mod, func);
 
+        // debug: log when we actually return a hook (vs the real function)
+        {
+          FILE *g = NULL;
+          fopen_s(&g, "D:\\git\\renderdoc-nikki\\nikki\\marker_getproc.txt", "a");
+          if(g)
+          {
+            char modname[128] = "?";
+            GetModuleFileNameA(mod, modname, sizeof(modname));
+            fprintf(g, "pid %d t=%llu *** RETURNING HOOK *** GetProcAddress(%s, %s)\n",
+                    (int)GetCurrentProcessId(), (unsigned long long)GetTickCount64(),
+                    strrchr(modname, '\\') ? strrchr(modname, '\\') + 1 : modname, searchFunc);
+            fclose(g);
+          }
+        }
+
 #if ENABLED(VERBOSE_DEBUG_HOOK)
         RDCDEBUG("Found hooked function, returning hook pointer %p", found->hook);
 #endif
@@ -880,6 +967,11 @@ static void InitHookData()
   if(!s_HookData)
   {
     s_HookData = new CachedHookData;
+
+    // Bisection switch: disable HookAllModules IAT patching entirely
+    if(GetFileAttributesA("D:\\git\\renderdoc-nikki\\nikki\\nikkiproxy_disable_hookall.txt") !=
+       INVALID_FILE_ATTRIBUTES)
+      s_HookData->hookAll = false;
 
     RDCASSERT(s_HookData->DllHooks.empty());
     s_HookData->DllHooks["kernel32.dll"].FunctionHooks.push_back(

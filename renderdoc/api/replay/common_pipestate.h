@@ -410,7 +410,7 @@ struct BoundVBuffer
       return byteSize < o.byteSize;
     return false;
   }
-  DOCUMENT(R"(A :class:`~renderdoc.ResourceId` identifying the buffer.
+  DOCUMENT(R"(A :class:`~RenderTest.ResourceId` identifying the buffer.
 
 :type: ResourceId
 )");

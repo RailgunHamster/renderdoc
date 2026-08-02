@@ -379,9 +379,9 @@ uint32_t Serialiser<SerialiserMode::Writing>::BeginChunk(uint32_t chunkID, uint6
       {
         if(m_ChunkMetadata.callstack.empty())
         {
-          bool collect = RenderDoc::Inst().GetCaptureOptions().captureCallstacks;
+          bool collect = RenderTest::Inst().GetCaptureOptions().captureCallstacks;
 
-          if(RenderDoc::Inst().GetCaptureOptions().captureCallstacksOnlyActions)
+          if(RenderTest::Inst().GetCaptureOptions().captureCallstacksOnlyActions)
             collect = collect && m_ActionChunk;
 
           if(collect)
@@ -593,7 +593,7 @@ void Serialiser<SerialiserMode::Writing>::EndChunk()
 
 template <>
 void Serialiser<SerialiserMode::Writing>::WriteStructuredFile(const SDFile &file,
-                                                              RENDERDOC_ProgressCallback progress)
+                                                              RENDERTEST_ProgressCallback progress)
 {
   Serialiser<SerialiserMode::Writing> scratchWriter(
       new StreamWriter(StreamWriter::DefaultScratchSize), Ownership::Stream);

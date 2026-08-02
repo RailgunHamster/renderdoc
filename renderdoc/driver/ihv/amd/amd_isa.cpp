@@ -254,7 +254,7 @@ rdcstr DisassembleSPIRV(ShaderStage stage, const bytebuf &shaderBytes, const rdc
 ; download the plugins package.
 ;
 ; To see instructions on how to download and configure the plugins on your system, go to:
-; https://github.com/baldurk/renderdoc/wiki/GCN-ISA)";
+; https://github.com/baldurk/RenderTest/wiki/GCN-ISA)";
   }
 
   rdcstr cmdLine = "-Dall -l";
@@ -376,7 +376,7 @@ rdcstr DisassembleGLSL(ShaderStage stage, const bytebuf &shaderBytes, const rdcs
 ; *older* than 22.7.1, where support for this method of disassembly stopped.
 ;
 ; To see instructions on how to download and configure the plugins on your system, go to:
-; https://github.com/baldurk/renderdoc/wiki/GCN-ISA)";
+; https://github.com/baldurk/RenderTest/wiki/GCN-ISA)";
   }
 
   const char *stageName = "unk";

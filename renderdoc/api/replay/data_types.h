@@ -41,7 +41,7 @@ struct FloatVector
   FloatVector(const FloatVector &) = default;
   FloatVector(float X, float Y, float Z, float W) : x(X), y(Y), z(Z), w(W) {}
   FloatVector &operator=(const FloatVector &) = default;
-#if defined(RENDERDOC_QT_COMPAT)
+#if defined(RENDERTEST_QT_COMPAT)
   FloatVector(const QColor &col) : x(col.redF()), y(col.greenF()), z(col.blueF()), w(col.alphaF())
   {
   }
@@ -172,7 +172,7 @@ struct PathEntry
 
 DECLARE_REFLECTION_STRUCT(PathEntry);
 
-DOCUMENT("Properties of a section in a renderdoc capture file.");
+DOCUMENT("Properties of a section in a RenderTest capture file.");
 struct SectionProperties
 {
   DOCUMENT("");
@@ -222,7 +222,7 @@ DECLARE_REFLECTION_STRUCT(SectionProperties);
 struct ResourceFormat;
 
 #if !defined(SWIG)
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_ResourceFormatName(const ResourceFormat &fmt,
+extern "C" RENDERTEST_API void RENDERTEST_CC RENDERTEST_ResourceFormatName(const ResourceFormat &fmt,
                                                                         rdcstr &name);
 #endif
 
@@ -270,7 +270,7 @@ struct ResourceFormat
   rdcstr Name() const
   {
     rdcstr ret;
-    RENDERDOC_ResourceFormatName(*this, ret);
+    RENDERTEST_ResourceFormatName(*this, ret);
     return ret;
   }
 

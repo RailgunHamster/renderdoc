@@ -133,7 +133,7 @@ static void ApplyEnvModifications(EnvMap &envValues,
 }
 
 // on windows we apply environment changes here, after process initialisation
-// but before any real work (in RenderDoc::Initialise) so that we support
+// but before any real work (in RenderTest::Initialise) so that we support
 // injecting the dll into processes we didn't launch (ie didn't control the
 // starting environment for), or even the application loading the dll itself
 // without any interaction with our replay app.
@@ -195,24 +195,24 @@ uint64_t Process::GetMemoryUsage()
 extern "C" __declspec(dllexport) void __cdecl INTERNAL_GetTargetControlIdent(uint32_t *ident)
 {
   if(ident)
-    *ident = RenderDoc::Inst().GetTargetControlIdent();
+    *ident = RenderTest::Inst().GetTargetControlIdent();
 }
 
 extern "C" __declspec(dllexport) void __cdecl INTERNAL_SetCaptureOptions(CaptureOptions *opts)
 {
   if(opts)
-    RenderDoc::Inst().SetCaptureOptions(*opts);
+    RenderTest::Inst().SetCaptureOptions(*opts);
 }
 
 extern "C" __declspec(dllexport) void __cdecl INTERNAL_SetCaptureFile(const char *capfile)
 {
   if(capfile)
-    RenderDoc::Inst().SetCaptureFileTemplate(capfile);
+    RenderTest::Inst().SetCaptureFileTemplate(capfile);
 }
 
 extern "C" __declspec(dllexport) void __cdecl INTERNAL_SetDebugLogFile(const char *logfile)
 {
-  RENDERDOC_SetDebugLogFile(logfile ? logfile : rdcstr());
+  RENDERTEST_SetDebugLogFile(logfile ? logfile : rdcstr());
 }
 
 static EnvironmentModification tempEnvMod;
@@ -249,7 +249,84 @@ extern "C" __declspec(dllexport) void __cdecl INTERNAL_ApplyEnvMods(void *ignore
   Process::ApplyEnvironmentModification();
 }
 
-void InjectDLL(HANDLE hProcess, rdcwstr libName)
+// small helper to write debug output for the injection code paths, useful when
+// debugging anti-cheat interactions on machines where the log file isn't available
+static void InjectDebugLog(const char *fmt, ...)
+{
+  static CRITICAL_SECTION cs = {};
+  static bool init = false;
+  if(!init)
+  {
+    InitializeCriticalSection(&cs);
+    init = true;
+  }
+  EnterCriticalSection(&cs);
+  CreateDirectoryA("C:\\Users\\Administrator\\AppData\\Local\\Temp\\RenderTest", NULL);
+  FILE *f = NULL;
+  fopen_s(&f, "C:\\Users\\Administrator\\AppData\\Local\\Temp\\RenderTest\\inject_debug.log", "a");
+  if(f)
+  {
+    va_list args;
+    va_start(args, fmt);
+    vfprintf(f, fmt, args);
+    va_end(args);
+    fputc('\n', f);
+    fclose(f);
+  }
+  LeaveCriticalSection(&cs);
+}
+
+// Find a thread in the target process that is currently suspended (e.g. the main
+// thread of a process created with CREATE_SUSPENDED), which we can safely hijack
+// for SetThreadContext-based injection. Returns an open thread handle, or NULL.
+static HANDLE FindSuspendedThread(DWORD pid)
+{
+  // The SetThreadContext hijack path is experimental - it is only used when
+  // explicitly enabled, as the CreateRemoteThread path is more reliable.
+  if(Process::GetEnvVariable("RENDERTEST_ENABLE_THREADHIJACK") == "")
+    return NULL;
+
+  HANDLE snap = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
+  if(snap == INVALID_HANDLE_VALUE)
+    return NULL;
+
+  HANDLE ret = NULL;
+  THREADENTRY32 te;
+  RDCEraseEl(te);
+  te.dwSize = sizeof(te);
+
+  for(BOOL ok = Thread32First(snap, &te); ok; ok = Thread32Next(snap, &te))
+  {
+    if(te.th32OwnerProcessID != pid)
+      continue;
+
+    HANDLE h = OpenThread(THREAD_SUSPEND_RESUME | THREAD_GET_CONTEXT | THREAD_SET_CONTEXT |
+                              THREAD_QUERY_INFORMATION,
+                          FALSE, te.th32ThreadID);
+    if(h == NULL)
+      continue;
+
+    DWORD prev = SuspendThread(h);
+    if(prev != (DWORD)-1)
+    {
+      // was already suspended before our probe -> candidate
+      ResumeThread(h);
+      if(prev > 0)
+      {
+        ret = h;
+        break;
+      }
+    }
+    CloseHandle(h);
+  }
+
+  CloseHandle(snap);
+  return ret;
+}
+
+// CreateRemoteThread-based injection, used as a fallback when no suspended thread
+// is available in the target process.
+void InjectDLLRemoteThread(HANDLE hProcess, rdcwstr libName)
 {
   wchar_t dllPath[MAX_PATH + 1] = {0};
   wcscpy_s(dllPath, libName.c_str());
@@ -294,6 +371,434 @@ void InjectDLL(HANDLE hProcess, rdcwstr libName)
   {
     RDCERR("Couldn't allocate remote memory for DLL '%ls': %u", libName.c_str(), GetLastError());
   }
+}
+
+// CreateRemoteThread-based function call injection, used as a fallback for
+// processes that are already running (no suspended thread available).
+
+// Returns the remote address of a function in the injected module, given the local
+// module base and the remote module base.
+static uintptr_t RemoteFuncAddress(uintptr_t RENDERTEST_remote, const char *funcName)
+{
+  HMODULE RENDERTEST_local = GetModuleHandleA(STRINGIZE(RDOC_BASE_NAME) ".dll");
+  uintptr_t func_local = (uintptr_t)GetProcAddress(RENDERTEST_local, funcName);
+  if(func_local == 0)
+    return 0;
+  return func_local + RENDERTEST_remote - (uintptr_t)RENDERTEST_local;
+}
+void InjectFunctionCallRemoteThread(HANDLE hProcess, uintptr_t RENDERTEST_remote,
+                                    const char *funcName, void *data, const size_t dataLen)
+{
+  if(dataLen == 0)
+  {
+    RDCERR("Invalid function call injection attempt");
+    return;
+  }
+
+  RDCDEBUG("Injecting call to %s", funcName);
+
+  uintptr_t func_remote = RemoteFuncAddress(RENDERTEST_remote, funcName);
+  if(func_remote == 0)
+  {
+    RDCERR("Couldn't resolve remote function %s", funcName);
+    return;
+  }
+
+  void *remoteMem = VirtualAllocEx(hProcess, NULL, dataLen, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+  SIZE_T numWritten;
+  WriteProcessMemory(hProcess, remoteMem, data, dataLen, &numWritten);
+
+  HANDLE hThread =
+      CreateRemoteThread(hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)func_remote, remoteMem, 0, NULL);
+  WaitForSingleObject(hThread, INFINITE);
+
+  ReadProcessMemory(hProcess, remoteMem, data, dataLen, &numWritten);
+
+  CloseHandle(hThread);
+  VirtualFreeEx(hProcess, remoteMem, 0, MEM_RELEASE);
+}
+
+// SetThreadContext-based remote injection. Hijacks a suspended thread in the remote
+// process (typically the main thread of a process created with CREATE_SUSPENDED) to
+// run a full injection payload. This avoids CreateRemoteThread which is easily
+// detected by anti-cheat systems such as CrashSight or ACE (NtCreateThreadEx
+// monitoring).
+//
+// The stub is a three-phase payload:
+//   Phase A: call ntdll!LdrInitializeThunk(LoadLibraryW, dllPath) - this runs the
+//            full process/thread loader initialisation (LdrpInitializeProcess +
+//            LdrpInitializeThread) on the hijacked thread, then loads the target DLL.
+//            Without this, running a DllMain on a freshly created suspended process
+//            crashes because the loader state is incomplete.
+//   Phase B: after 'done' is observed by the injector, it fills the call table
+//            (INTERNAL_* config calls with their argument buffers) and sets cfgGo.
+//            The stub calls each entry: func(arg).
+//   Phase C: after marker 5 is observed, the injector reads back results and sets
+//            'go'. The stub restores the original stack pointer, zeroes the volatile
+//            registers and jumps to the process entry point. It must NOT resume the
+//            original context (which would re-run LdrpInitializeProcess and crash).
+//
+// Work block layout (rsi points here):
+//   +0x00 resultPtr (qword)  -> result/done block:
+//                              +0x00 result (dword), +0x04 done (dword),
+//                              +0x08 go (dword),     +0x10 marker (dword)
+//   +0x08 entry     (qword)  - original thread start parameter (process entry point)
+//   +0x10 origRsp   (qword)  - original stack pointer
+//   +0x18 callTable (qword)  - [count][pairs of (func, arg)] (1-based index)
+//   +0x20 marker    (dword)
+//   +0x24 cfgGo     (dword)
+//   +0x28 go        (dword)
+struct InjectConfigCall
+{
+  uintptr_t funcRemote;
+  const void *data;
+  size_t dataLen;
+};
+
+// offsets within the work block
+enum
+{
+  WK_RESULT = 0x00,
+  WK_ENTRY = 0x08,
+  WK_ORIG_RSP = 0x10,
+  WK_TABLE = 0x18,
+  WK_MARKER = 0x20,
+  WK_CFGGO = 0x24,
+  WK_GO = 0x28,
+};
+
+// offsets within the result block (pointed to by work+0x00)
+enum
+{
+  RS_RESULT = 0x00,
+  RS_DONE = 0x04,
+  RS_GO = 0x08,
+  RS_MARKER = 0x10,
+};
+
+// layout of the remote stub allocation
+enum
+{
+  STUB_STACK_SIZE = 0x20000,
+  STUB_WORK_OFF = 0x400,
+  STUB_TABLE_OFF = 0x800,
+  STUB_PATH_OFF = 0x1000,
+};
+
+  // Phase A: set up the stub + work block, hijack the suspended thread and load the
+  // DLL via LdrInitializeThunk. Returns the remote resultPtr on success (the stub
+  // thread is left spinning at the cfgGo wait), or 0 on failure.
+  //
+  // Note: ntdll!LdrInitializeThunk terminates the thread after the start routine
+  // returns, so we do NOT use it. The stub calls LoadLibraryW directly - the loader
+  // handles a fresh process fine, as proven by the CreateRemoteThread+LoadLibraryW
+  // path that RenderTest has always used.
+  //
+  // For debugging: if RENDERTEST_TEST_DLL is set, that DLL is loaded instead.
+static uintptr_t InjectPayloadPhaseA(HANDLE hProcess, HANDLE hThread, const rdcwstr &dllPath)
+{
+  InjectDebugLog("InjectPayloadPhaseA: pid=%u", GetProcessId(hProcess));
+  if(hProcess == NULL || hThread == NULL || dllPath.length() == 0)
+  {
+    InjectDebugLog("InjectPayloadPhaseA: bad params");
+    return 0;
+  }
+
+  uint8_t stub[0xA4] = {0};
+
+  // 0x00 mov rsp, imm64(stubStackTop)          ; use our own committed stack buffer
+  stub[0x00] = 0x48; stub[0x01] = 0xBC;
+  // stack top filled in below (at 0x02)
+  // 0x0A mov rsi, imm64(work)
+  stub[0x0A] = 0x48; stub[0x0B] = 0xBE;
+  // work ptr filled in below (at 0x0C)
+  // 0x14 mov dword [rsi+0x20], 1               ; marker = 1
+  stub[0x14] = 0xC7; stub[0x15] = 0x46; stub[0x16] = WK_MARKER; stub[0x17] = 0x01;
+  stub[0x18] = 0; stub[0x19] = 0; stub[0x1A] = 0;
+  // 0x1B mov rax, imm64(LoadLibraryW)
+  stub[0x1B] = 0x48; stub[0x1C] = 0xB8;
+  // loadLibrary filled in below (at 0x1D)
+  // 0x25 mov rcx, imm64(dllPath)
+  stub[0x25] = 0x48; stub[0x26] = 0xB9;
+  // dllPath filled in below (at 0x27)
+  // 0x2F xor edx, edx
+  stub[0x2F] = 0x31; stub[0x30] = 0xD2;
+  // 0x31 call rax
+  stub[0x31] = 0xFF; stub[0x32] = 0xD0;
+  // 0x33 mov dword [rsi+0x20], 3               ; marker = 3
+  stub[0x33] = 0xC7; stub[0x34] = 0x46; stub[0x35] = WK_MARKER; stub[0x36] = 0x03;
+  stub[0x37] = 0; stub[0x38] = 0; stub[0x39] = 0;
+  // 0x3A mov rcx, [rsi+0x00]                   ; rcx = resultPtr
+  stub[0x3A] = 0x48; stub[0x3B] = 0x8B; stub[0x3C] = 0x4E; stub[0x3D] = WK_RESULT;
+  // 0x3E mov [rcx], eax                        ; store LoadLibrary result
+  stub[0x3E] = 0x89; stub[0x3F] = 0x01;
+  // 0x40 mov dword [rcx+4], 1                  ; done = 1
+  stub[0x40] = 0xC7; stub[0x41] = 0x41; stub[0x42] = RS_DONE; stub[0x43] = 0x01;
+  stub[0x44] = 0; stub[0x45] = 0; stub[0x46] = 0;
+  // 0x47 mov rdi, [rsi+0x18]                   ; rdi = call table
+  stub[0x47] = 0x48; stub[0x48] = 0x8B; stub[0x49] = 0x7E; stub[0x4A] = WK_TABLE;
+  // 0x4B mov ecx, [rdi]                        ; count
+  stub[0x4B] = 0x8B; stub[0x4C] = 0x0F;
+  // 0x4D test ecx, ecx
+  stub[0x4D] = 0x85; stub[0x4E] = 0xC9;
+  // 0x4F je 0x6C                               ; skip loop if count == 0
+  stub[0x4F] = 0x74; stub[0x50] = 0x1B;
+  // 0x51 loop: mov rax, [rdi+rcx*8]            ; func
+  stub[0x51] = 0x48; stub[0x52] = 0x8B; stub[0x53] = 0x44; stub[0x54] = 0xCF; stub[0x55] = 0x00;
+  // 0x56 mov rdx, [rdi+rcx*8+8]                ; arg
+  stub[0x56] = 0x48; stub[0x57] = 0x8B; stub[0x58] = 0x54; stub[0x59] = 0xCF; stub[0x5A] = 0x08;
+  // 0x5B sub rsp, 0x30
+  stub[0x5B] = 0x48; stub[0x5C] = 0x83; stub[0x5D] = 0xEC; stub[0x5E] = 0x30;
+  // 0x5F mov rcx, rdx
+  stub[0x5F] = 0x48; stub[0x60] = 0x89; stub[0x61] = 0xD1;
+  // 0x62 call rax
+  stub[0x62] = 0xFF; stub[0x63] = 0xD0;
+  // 0x64 add rsp, 0x30
+  stub[0x64] = 0x48; stub[0x65] = 0x83; stub[0x66] = 0xC4; stub[0x67] = 0x30;
+  // 0x68 dec ecx
+  stub[0x68] = 0xFF; stub[0x69] = 0xC9;
+  // 0x6A jnz 0x51
+  stub[0x6A] = 0x75; stub[0x6B] = 0xE5;
+  // 0x6C mov dword [rsi+0x20], 5               ; marker = 5
+  stub[0x6C] = 0xC7; stub[0x6D] = 0x46; stub[0x6E] = WK_MARKER; stub[0x6F] = 0x05;
+  stub[0x70] = 0; stub[0x71] = 0; stub[0x72] = 0;
+  // 0x73 spin: mov eax, [rsi+0x24]             ; wait for cfgGo
+  stub[0x73] = 0x8B; stub[0x74] = 0x46; stub[0x75] = WK_CFGGO;
+  // 0x76 test eax, eax
+  stub[0x76] = 0x85; stub[0x77] = 0xC0;
+  // 0x78 jnz 0x7E
+  stub[0x78] = 0x75; stub[0x79] = 0x04;
+  // 0x7A pause
+  stub[0x7A] = 0xF3; stub[0x7B] = 0x90;
+  // 0x7C jmp 0x73
+  stub[0x7C] = 0xEB; stub[0x7D] = 0xF5;
+  // 0x7E mov rsp, [rsi+0x10]                   ; restore original stack
+  stub[0x7E] = 0x48; stub[0x7F] = 0x8B; stub[0x80] = 0x66; stub[0x81] = WK_ORIG_RSP;
+  // 0x82 xor eax, eax
+  stub[0x82] = 0x31; stub[0x83] = 0xC0;
+  // 0x84 xor ecx, ecx
+  stub[0x84] = 0x31; stub[0x85] = 0xC9;
+  // 0x86 xor edx, edx
+  stub[0x86] = 0x31; stub[0x87] = 0xD2;
+  // 0x88 xor r8d, r8d
+  stub[0x88] = 0x45; stub[0x89] = 0x31; stub[0x8A] = 0xC0;
+  // 0x8B xor r9d, r9d
+  stub[0x8B] = 0x45; stub[0x8C] = 0x31; stub[0x8D] = 0xC9;
+  // 0x8E xor r10d, r10d
+  stub[0x8E] = 0x45; stub[0x8F] = 0x31; stub[0x90] = 0xD2;
+  // 0x91 xor r11d, r11d
+  stub[0x91] = 0x45; stub[0x92] = 0x31; stub[0x93] = 0xDB;
+  // 0x94 mov rbx, [rsi+0x08]                   ; rbx = entry point
+  stub[0x94] = 0x48; stub[0x95] = 0x8B; stub[0x96] = 0x5E; stub[0x97] = WK_ENTRY;
+  // 0x98 jmp rbx
+  stub[0x98] = 0xFF; stub[0x99] = 0xE3;
+
+  void *remoteStub = VirtualAllocEx(hProcess, NULL, STUB_STACK_SIZE, MEM_COMMIT,
+                                    PAGE_EXECUTE_READWRITE);
+  if(remoteStub == NULL)
+  {
+    InjectDebugLog("InjectPayloadPhaseA: VirtualAllocEx failed err=%u", GetLastError());
+    RDCERR("Couldn't allocate remote memory for injection");
+    return false;
+  }
+
+  uintptr_t stubBase = (uintptr_t)remoteStub;
+  uintptr_t workPtr = stubBase + STUB_WORK_OFF;
+  uintptr_t resultPtr = workPtr + 0x40;
+  uintptr_t stubStackTop = stubBase + STUB_STACK_SIZE - 8;
+
+  InjectDebugLog("InjectPayloadPhaseA: stub=%p work=%p result=%p stack=%p", remoteStub,
+                 (void *)workPtr, (void *)resultPtr, (void *)stubStackTop);
+
+  static HMODULE kernel32 = GetModuleHandleA("kernel32.dll");
+  uintptr_t loadLibrary = (uintptr_t)GetProcAddress(kernel32, "LoadLibraryW");
+
+  void *remotePath = (void *)(stubBase + STUB_PATH_OFF);
+  WriteProcessMemory(hProcess, remotePath, dllPath.c_str(),
+                     (wcslen(dllPath.c_str()) + 1) * sizeof(wchar_t), NULL);
+
+  memcpy(&stub[0x02], &stubStackTop, sizeof(uintptr_t));
+  memcpy(&stub[0x0C], &workPtr, sizeof(uintptr_t));
+  memcpy(&stub[0x1D], &loadLibrary, sizeof(uintptr_t));
+  memcpy(&stub[0x27], &remotePath, sizeof(uintptr_t));
+
+  // write the work block
+  uint8_t work[0x48] = {0};
+  uintptr_t tablePtr = stubBase + STUB_TABLE_OFF;
+
+  CONTEXT origCtx;
+  RDCEraseEl(origCtx);
+  origCtx.ContextFlags = CONTEXT_FULL;
+  if(!GetThreadContext(hThread, &origCtx))
+  {
+    InjectDebugLog("InjectPayloadPhaseA: GetThreadContext failed err=%u", GetLastError());
+    RDCERR("Couldn't get thread context for injection: %u", GetLastError());
+    VirtualFreeEx(hProcess, remoteStub, 0, MEM_RELEASE);
+    return 0;
+  }
+  InjectDebugLog("InjectPayloadPhaseA: orig RIP=%p RSP=%p RCX=%p", (void *)origCtx.Rip,
+                 (void *)origCtx.Rsp, (void *)origCtx.Rcx);
+
+  memcpy(&work[WK_RESULT], &resultPtr, sizeof(uintptr_t));
+  memcpy(&work[WK_ENTRY], &origCtx.Rcx, sizeof(uintptr_t));
+  memcpy(&work[WK_ORIG_RSP], &origCtx.Rsp, sizeof(uintptr_t));
+  memcpy(&work[WK_TABLE], &tablePtr, sizeof(uintptr_t));
+
+  WriteProcessMemory(hProcess, (void *)workPtr, work, sizeof(work), NULL);
+  WriteProcessMemory(hProcess, remoteStub, stub, sizeof(stub), NULL);
+
+  CONTEXT hijackCtx = origCtx;
+  hijackCtx.Rip = stubBase;
+  hijackCtx.ContextFlags = CONTEXT_FULL;
+  if(!SetThreadContext(hThread, &hijackCtx))
+  {
+    InjectDebugLog("InjectPayloadPhaseA: SetThreadContext failed err=%u", GetLastError());
+    RDCERR("Couldn't set thread context for injection: %u", GetLastError());
+    VirtualFreeEx(hProcess, remoteStub, 0, MEM_RELEASE);
+    return 0;
+  }
+
+  if(ResumeThread(hThread) == (DWORD)-1)
+  {
+    InjectDebugLog("InjectPayloadPhaseA: ResumeThread failed err=%u", GetLastError());
+    RDCERR("Couldn't resume injected thread: %u", GetLastError());
+    VirtualFreeEx(hProcess, remoteStub, 0, MEM_RELEASE);
+    return 0;
+  }
+
+  // phase A: wait for the DLL to be loaded (done flag)
+  bool completed = false;
+  uint32_t ret = 0;
+  uint32_t marker = 0;
+  for(int i = 0; i < 1000; i++)
+  {
+    uint32_t done = 0;
+    uint32_t mark = 0;
+    if(ReadProcessMemory(hProcess, (void *)(resultPtr + RS_DONE), &done, sizeof(done), NULL) &&
+       done == 1)
+    {
+      ReadProcessMemory(hProcess, (void *)(resultPtr + RS_RESULT), &ret, sizeof(ret), NULL);
+      completed = true;
+      break;
+    }
+    ReadProcessMemory(hProcess, (void *)((resultPtr - 0x40) + WK_MARKER), &mark, sizeof(mark), NULL);
+    if(marker != mark)
+    {
+      marker = mark;
+      InjectDebugLog("InjectPayloadPhaseA: marker=%u", marker);
+    }
+    Threading::Sleep(10);
+  }
+
+  if(!completed)
+  {
+    InjectDebugLog("InjectPayloadPhaseA: TIMEOUT waiting for DLL load lastErr=%u marker=%u",
+                   GetLastError(), marker);
+    RDCERR("Timed out waiting for injected DLL to load");
+    VirtualFreeEx(hProcess, remoteStub, 0, MEM_RELEASE);
+    return 0;
+  }
+
+  InjectDebugLog("InjectPayloadPhaseA: DLL loaded, hmod=0x%x", ret);
+
+  // keep the stub allocation alive - phase B/C uses the work block. The caller
+  // frees it via InjectPayloadPhaseBC.
+  return resultPtr;
+}
+
+// Phase B/C: write the config call table into the work block, let the stub run the
+// calls, read back the ident, then let the stub continue to the process entry point.
+// The stub allocation is freed at the end.
+static bool InjectPayloadPhaseBC(HANDLE hProcess, uintptr_t resultPtr,
+                                 const rdcarray<InjectConfigCall> &configCalls, void *identRet,
+                                 size_t identLen)
+{
+  if(hProcess == NULL || resultPtr == 0)
+    return false;
+
+  uintptr_t workPtr = resultPtr - 0x40;
+  uintptr_t remoteStub = workPtr - 0x400;
+  uintptr_t stubBase = remoteStub;
+
+  // write the call table (config calls) and let the stub run them.
+  // allocate one remote buffer holding all argument blobs
+  size_t totalArgLen = 0;
+  for(int i = 0; i < configCalls.count(); i++)
+    totalArgLen += (configCalls[i].dataLen + 7) & ~(size_t)7;
+
+  void *remoteArg = NULL;
+  if(totalArgLen > 0)
+  {
+    remoteArg = VirtualAllocEx(hProcess, NULL, totalArgLen, MEM_COMMIT, PAGE_READWRITE);
+    if(remoteArg == NULL)
+    {
+      InjectDebugLog("InjectPayloadPhaseBC: arg alloc failed err=%u", GetLastError());
+      VirtualFreeEx(hProcess, (void *)remoteStub, 0, MEM_RELEASE);
+      return false;
+    }
+  }
+
+  size_t tableLen = 8 + (size_t)configCalls.count() * 16;
+  uint8_t *table = new uint8_t[tableLen];
+  memset(table, 0, tableLen);
+  uint32_t count = (uint32_t)configCalls.count();
+  memcpy(table, &count, sizeof(uint32_t));
+
+  size_t argOff = 0;
+  uintptr_t identRemote = 0;
+  for(int i = 0; i < configCalls.count(); i++)
+  {
+    uintptr_t argPtr = (uintptr_t)remoteArg + argOff;
+    if(configCalls[i].data && configCalls[i].dataLen > 0)
+      WriteProcessMemory(hProcess, (void *)argPtr, configCalls[i].data, configCalls[i].dataLen,
+                         NULL);
+    memcpy(table + 8 + (size_t)(i + 1) * 16 + 0, &configCalls[i].funcRemote, sizeof(uintptr_t));
+    memcpy(table + 8 + (size_t)(i + 1) * 16 + 8, &argPtr, sizeof(uintptr_t));
+    if(i == configCalls.count() - 1)
+      identRemote = argPtr;
+    argOff += (configCalls[i].dataLen + 7) & ~(size_t)7;
+  }
+  WriteProcessMemory(hProcess, (void *)(stubBase + STUB_TABLE_OFF), table, tableLen, NULL);
+  delete[] table;
+
+  uint32_t one = 1;
+  WriteProcessMemory(hProcess, (void *)(workPtr + WK_CFGGO), &one, sizeof(one), NULL);
+
+  // wait for marker 5 (config calls done)
+  bool configDone = false;
+  for(int i = 0; i < 1000; i++)
+  {
+    uint32_t mark = 0;
+    if(ReadProcessMemory(hProcess, (void *)((resultPtr - 0x40) + WK_MARKER), &mark, sizeof(mark), NULL) &&
+       mark == 5)
+    {
+      configDone = true;
+      break;
+    }
+    Threading::Sleep(10);
+  }
+
+  if(!configDone)
+  {
+    InjectDebugLog("InjectPayloadPhaseBC: TIMEOUT waiting for config calls");
+    RDCERR("Timed out waiting for injected config calls to complete");
+  }
+  else
+  {
+    if(identRet && identLen > 0 && identRemote)
+      ReadProcessMemory(hProcess, (void *)identRemote, identRet, identLen, NULL);
+  }
+
+  // phase C: let the stub continue to the entry point
+  WriteProcessMemory(hProcess, (void *)(workPtr + WK_GO), &one, sizeof(one), NULL);
+
+  Threading::Sleep(50);
+
+  if(remoteArg)
+    VirtualFreeEx(hProcess, remoteArg, 0, MEM_RELEASE);
+  VirtualFreeEx(hProcess, (void *)remoteStub, 0, MEM_RELEASE);
+
+  return configDone;
 }
 
 uintptr_t FindRemoteDLL(DWORD pid, rdcstr libName)
@@ -398,38 +903,16 @@ uintptr_t FindRemoteDLL(DWORD pid, rdcstr libName)
   return ret;
 }
 
-void InjectFunctionCall(HANDLE hProcess, uintptr_t renderdoc_remote, const char *funcName,
-                        void *data, const size_t dataLen)
+
+// Creates a config call entry for the given INTERNAL_* function.
+static void AddConfigCall(rdcarray<InjectConfigCall> &calls, uintptr_t RENDERTEST_remote,
+                          const char *funcName, const void *data, size_t dataLen)
 {
-  if(dataLen == 0)
-  {
-    RDCERR("Invalid function call injection attempt");
-    return;
-  }
-
-  RDCDEBUG("Injecting call to %s", funcName);
-
-  HMODULE renderdoc_local = GetModuleHandleA(STRINGIZE(RDOC_BASE_NAME) ".dll");
-
-  uintptr_t func_local = (uintptr_t)GetProcAddress(renderdoc_local, funcName);
-
-  // we've found SetCaptureOptions in our local instance of the module, now calculate the offset and
-  // so get the function
-  // in the remote module (which might be loaded at a different base address
-  uintptr_t func_remote = func_local + renderdoc_remote - (uintptr_t)renderdoc_local;
-
-  void *remoteMem = VirtualAllocEx(hProcess, NULL, dataLen, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
-  SIZE_T numWritten;
-  WriteProcessMemory(hProcess, remoteMem, data, dataLen, &numWritten);
-
-  HANDLE hThread =
-      CreateRemoteThread(hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)func_remote, remoteMem, 0, NULL);
-  WaitForSingleObject(hThread, INFINITE);
-
-  ReadProcessMemory(hProcess, remoteMem, data, dataLen, &numWritten);
-
-  CloseHandle(hThread);
-  VirtualFreeEx(hProcess, remoteMem, 0, MEM_RELEASE);
+  InjectConfigCall call;
+  call.funcRemote = RemoteFuncAddress(RENDERTEST_remote, funcName);
+  call.data = data;
+  call.dataLen = dataLen;
+  calls.push_back(call);
 }
 
 static PROCESS_INFORMATION RunProcess(const rdcstr &app, const rdcstr &workingDir,
@@ -607,23 +1090,23 @@ rdcpair<RDResult, uint32_t> Process::InjectIntoProcess(uint32_t pid,
       RDCDEBUG("Timed out waiting for debugger, gave up after %u s", opts.delayForDebugger);
   }
 
-  RDCLOG("Injecting renderdoc into process %lu", pid);
+  RDCLOG("Injecting RenderTest into process %lu", pid);
 
-  wchar_t renderdocPath[MAX_PATH] = {0};
-  GetModuleFileNameW(GetModuleHandleA(STRINGIZE(RDOC_BASE_NAME) ".dll"), &renderdocPath[0],
+  wchar_t RenderTestPath[MAX_PATH] = {0};
+  GetModuleFileNameW(GetModuleHandleA(STRINGIZE(RDOC_BASE_NAME) ".dll"), &RenderTestPath[0],
                                       MAX_PATH - 1);
 
-  wchar_t renderdocPathLower[MAX_PATH] = {0};
-  memcpy(renderdocPathLower, renderdocPath, MAX_PATH * sizeof(wchar_t));
-  for(size_t i = 0; i < MAX_PATH && renderdocPathLower[i]; i++)
+  wchar_t RenderTestPathLower[MAX_PATH] = {0};
+  memcpy(RenderTestPathLower, RenderTestPath, MAX_PATH * sizeof(wchar_t));
+  for(size_t i = 0; i < MAX_PATH && RenderTestPathLower[i]; i++)
   {
     // lowercase
-    if(renderdocPathLower[i] >= 'A' && renderdocPathLower[i] <= 'Z')
-      renderdocPathLower[i] = 'a' + char(renderdocPathLower[i] - 'A');
+    if(RenderTestPathLower[i] >= 'A' && RenderTestPathLower[i] <= 'Z')
+      RenderTestPathLower[i] = 'a' + char(RenderTestPathLower[i] - 'A');
 
     // normalise paths
-    if(renderdocPathLower[i] == '/')
-      renderdocPathLower[i] = '\\';
+    if(RenderTestPathLower[i] == '/')
+      RenderTestPathLower[i] = '\\';
   }
 
   BOOL isWow64 = FALSE;
@@ -669,15 +1152,15 @@ rdcpair<RDResult, uint32_t> Process::InjectIntoProcess(uint32_t pid,
   // We don't support capturing 64-bit programs from a 32-bit install
   // because it's pointless - a 64-bit install will work for all in
   // that case. But we do want to handle the case of:
-  // 64-bit renderdoc -> 32-bit program (via 32-bit renderdoccmd)
-  //    -> 64-bit program (going back to 64-bit renderdoccmd).
-  // so we try to see if we're an x86 invoked renderdoccmd in an
+  // 64-bit RenderTest -> 32-bit program (via 32-bit RenderTestcmd)
+  //    -> 64-bit program (going back to 64-bit RenderTestcmd).
+  // so we try to see if we're an x86 invoked RenderTestcmd in an
   // otherwise 64-bit install, and 'promote' back to 64-bit.
   if(selfWow64 && !isWow64)
   {
-    wchar_t *slash = wcsrchr(renderdocPath, L'\\');
+    wchar_t *slash = wcsrchr(RenderTestPath, L'\\');
 
-    if(slash && slash > renderdocPath + 4)
+    if(slash && slash > RenderTestPath + 4)
     {
       slash -= 4;
 
@@ -692,9 +1175,9 @@ rdcpair<RDResult, uint32_t> Process::InjectIntoProcess(uint32_t pid,
     // corresponding folder
     if(!capalt)
     {
-      const wchar_t *devLocation = wcsstr(renderdocPathLower, L"\\win32\\development\\");
+      const wchar_t *devLocation = wcsstr(RenderTestPathLower, L"\\win32\\development\\");
       if(!devLocation)
-        devLocation = wcsstr(renderdocPathLower, L"\\win32\\release\\");
+        devLocation = wcsstr(RenderTestPathLower, L"\\win32\\release\\");
 
       if(devLocation)
       {
@@ -706,18 +1189,18 @@ rdcpair<RDResult, uint32_t> Process::InjectIntoProcess(uint32_t pid,
     // if we couldn't promote, then bail out.
     if(!capalt)
     {
-      RDCDEBUG("Running from %ls", renderdocPathLower);
+      RDCDEBUG("Running from %ls", RenderTestPathLower);
 
       CloseHandle(hProcess);
       RDResult result;
       SET_ERROR_RESULT(result, ResultCode::IncompatibleProcess,
-                       "Can't capture 64-bit program with 32-bit build of RenderDoc. Please run a "
-                       "64-bit build of RenderDoc");
+                       "Can't capture 64-bit program with 32-bit build of RenderTest. Please run a "
+                       "64-bit build of RenderTest");
       return {result, 0};
     }
   }
 #else
-  // farm off to alternate bitness renderdoccmd.exe
+  // farm off to alternate bitness RenderTestcmd.exe
 
   // if the target process is 'wow64' that means it's 32-bit.
   capalt = (isWow64 == TRUE);
@@ -728,27 +1211,27 @@ rdcpair<RDResult, uint32_t> Process::InjectIntoProcess(uint32_t pid,
 #if ENABLED(RDOC_X64)
     // if it looks like we're in the development environment, look for the alternate bitness in the
     // corresponding folder
-    const wchar_t *devLocation = wcsstr(renderdocPathLower, L"\\x64\\development\\");
+    const wchar_t *devLocation = wcsstr(RenderTestPathLower, L"\\x64\\development\\");
     if(devLocation)
     {
-      size_t idx = devLocation - renderdocPathLower;
+      size_t idx = devLocation - RenderTestPathLower;
 
-      renderdocPath[idx] = 0;
+      RenderTestPath[idx] = 0;
 
-      wcscat_s(renderdocPath, L"\\Win32\\Development\\renderdoccmd.exe");
+      wcscat_s(RenderTestPath, L"\\Win32\\Development\\RenderTestcmd.exe");
     }
 
     if(!devLocation)
     {
-      devLocation = wcsstr(renderdocPathLower, L"\\x64\\release\\");
+      devLocation = wcsstr(RenderTestPathLower, L"\\x64\\release\\");
 
       if(devLocation)
       {
-        size_t idx = devLocation - renderdocPathLower;
+        size_t idx = devLocation - RenderTestPathLower;
 
-        renderdocPath[idx] = 0;
+        RenderTestPath[idx] = 0;
 
-        wcscat_s(renderdocPath, L"\\Win32\\Release\\renderdoccmd.exe");
+        wcscat_s(RenderTestPath, L"\\Win32\\Release\\RenderTestcmd.exe");
       }
     }
 
@@ -757,58 +1240,58 @@ rdcpair<RDResult, uint32_t> Process::InjectIntoProcess(uint32_t pid,
       // look in a subfolder for x86.
 
       // remove the filename from the path
-      wchar_t *slash = wcsrchr(renderdocPath, L'\\');
+      wchar_t *slash = wcsrchr(RenderTestPath, L'\\');
 
       if(slash)
         *slash = 0;
 
       // append path
-      wcscat_s(renderdocPath, L"\\x86\\renderdoccmd.exe");
+      wcscat_s(RenderTestPath, L"\\x86\\RenderTestcmd.exe");
     }
 #else
     // if it looks like we're in the development environment, look for the alternate bitness in the
     // corresponding folder
-    const wchar_t *devLocation = wcsstr(renderdocPathLower, L"\\win32\\development\\");
+    const wchar_t *devLocation = wcsstr(RenderTestPathLower, L"\\win32\\development\\");
     if(devLocation)
     {
-      size_t idx = devLocation - renderdocPathLower;
+      size_t idx = devLocation - RenderTestPathLower;
 
-      renderdocPath[idx] = 0;
+      RenderTestPath[idx] = 0;
 
-      wcscat_s(renderdocPath, L"\\x64\\Development\\renderdoccmd.exe");
+      wcscat_s(RenderTestPath, L"\\x64\\Development\\RenderTestcmd.exe");
     }
 
     if(!devLocation)
     {
-      devLocation = wcsstr(renderdocPathLower, L"\\win32\\release\\");
+      devLocation = wcsstr(RenderTestPathLower, L"\\win32\\release\\");
 
       if(devLocation)
       {
-        size_t idx = devLocation - renderdocPathLower;
+        size_t idx = devLocation - RenderTestPathLower;
 
-        renderdocPath[idx] = 0;
+        RenderTestPath[idx] = 0;
 
-        wcscat_s(renderdocPath, L"\\x64\\Release\\renderdoccmd.exe");
+        wcscat_s(RenderTestPath, L"\\x64\\Release\\RenderTestcmd.exe");
       }
     }
 
     if(!devLocation)
     {
-      // look upwards on 32-bit to find the parent renderdoccmd.
-      wchar_t *slash = wcsrchr(renderdocPath, L'\\');
+      // look upwards on 32-bit to find the parent RenderTestcmd.
+      wchar_t *slash = wcsrchr(RenderTestPath, L'\\');
 
       // remove the filename
       if(slash)
         *slash = 0;
 
       // remove the \\x86
-      slash = wcsrchr(renderdocPath, L'\\');
+      slash = wcsrchr(RenderTestPath, L'\\');
 
       if(slash)
         *slash = 0;
 
       // append path
-      wcscat_s(renderdocPath, L"\\renderdoccmd.exe");
+      wcscat_s(RenderTestPath, L"\\RenderTestcmd.exe");
     }
 #endif
 
@@ -841,7 +1324,7 @@ rdcpair<RDResult, uint32_t> Process::InjectIntoProcess(uint32_t pid,
     _snwprintf_s(
         paramsAlloc, 2047, 2047,
         L"\"%ls\" capaltbit --pid=%u --capfile=\"%ls\" --debuglog=\"%ls\" --capopts=\"%hs\"",
-        renderdocPath, pid, wcapturefile.c_str(), wdebugLogfile.c_str(), optstr.c_str());
+        RenderTestPath, pid, wcapturefile.c_str(), wdebugLogfile.c_str(), optstr.c_str());
 
     RDCDEBUG("params %ls", paramsAlloc);
 
@@ -924,14 +1407,14 @@ rdcpair<RDResult, uint32_t> Process::InjectIntoProcess(uint32_t pid,
     if(!retValue)
     {
       RDResult result;
-#if RENDERDOC_OFFICIAL_BUILD
+#if RENDERTEST_OFFICIAL_BUILD
       SET_ERROR_RESULT(result, ResultCode::InternalError,
-                       "Can't run 32-bit renderdoccmd to capture 32-bit program.");
+                       "Can't run 32-bit RenderTestcmd to capture 32-bit program.");
 #else
       SET_ERROR_RESULT(
           result, ResultCode::InternalError,
-          "Can't run 32-bit renderdoccmd to capture 32-bit program."
-          "If this is a locally built RenderDoc you must build both 32-bit and 64-bit versions.");
+          "Can't run 32-bit RenderTestcmd to capture 32-bit program."
+          "If this is a locally built RenderTest you must build both 32-bit and 64-bit versions.");
 #endif
       CloseHandle(hProcess);
       return {result, 0};
@@ -958,21 +1441,38 @@ rdcpair<RDResult, uint32_t> Process::InjectIntoProcess(uint32_t pid,
       return {result, 0};
     }
 
-    if(exitCode < RenderDoc_FirstTargetControlPort)
+    if(exitCode < RENDERTEST_FirstTargetControlPort)
     {
       ResultCode code = (ResultCode)exitCode;
 
       RDResult result;
-      SET_ERROR_RESULT(result, code, "32-bit renderdoccmd returned '%s'", ToStr(code).c_str());
+      SET_ERROR_RESULT(result, code, "32-bit RenderTestcmd returned '%s'", ToStr(code).c_str());
       return {code, 0};
     }
 
     return {ResultCode::Succeeded, (uint32_t)exitCode};
   }
 
-  InjectDLL(hProcess, renderdocPath);
+  rdcwstr wRenderTestPath = StringFormat::UTF82Wide(StringFormat::Wide2UTF8(RenderTestPath));
+
+  // prefer SetThreadContext-based injection when we can find a suspended thread
+  // (e.g. the main thread of a process created with CREATE_SUSPENDED). This avoids
+  // CreateRemoteThread which is detectable by anti-cheat systems.
+  HANDLE hijackThread = FindSuspendedThread(pid);
 
   const char *rdoc_dll = STRINGIZE(RDOC_BASE_NAME);
+
+  uintptr_t resultPtr = 0;
+  if(hijackThread)
+  {
+    // phase A: load the DLL via the hijacked thread (full loader initialisation)
+    resultPtr = InjectPayloadPhaseA(hProcess, hijackThread, wRenderTestPath);
+  }
+  else
+  {
+    // fallback for already-running processes: CreateRemoteThread based injection
+    InjectDLLRemoteThread(hProcess, wRenderTestPath);
+  }
 
   uintptr_t loc = FindRemoteDLL(pid, STRINGIZE(RDOC_BASE_NAME) ".dll");
 
@@ -990,46 +1490,101 @@ rdcpair<RDResult, uint32_t> Process::InjectIntoProcess(uint32_t pid,
   {
     // safe to cast away the const as we know these functions don't modify the parameters
 
-    if(!capturefile.empty())
-      InjectFunctionCall(hProcess, loc, "INTERNAL_SetCaptureFile", (void *)capturefile.c_str(),
-                         capturefile.size() + 1);
-
-    rdcstr debugLogfile = RDCGETLOGFILE();
-
-    InjectFunctionCall(hProcess, loc, "INTERNAL_SetDebugLogFile", (void *)debugLogfile.c_str(),
-                       debugLogfile.size() + 1);
-
-    InjectFunctionCall(hProcess, loc, "INTERNAL_SetCaptureOptions", (CaptureOptions *)&opts,
-                       sizeof(CaptureOptions));
-
-    InjectFunctionCall(hProcess, loc, "INTERNAL_GetTargetControlIdent", &result.second,
-                       sizeof(result.second));
-
-    if(!env.empty())
+    if(hijackThread && resultPtr != 0)
     {
-      for(const EnvironmentModification &e : env)
+      // phase B/C: run the config calls via the hijacked thread, then let it
+      // continue to the process entry point
+      rdcarray<InjectConfigCall> configCalls;
+
+      if(!capturefile.empty())
+        AddConfigCall(configCalls, loc, "INTERNAL_SetCaptureFile", (void *)capturefile.c_str(),
+                      capturefile.size() + 1);
+
+      rdcstr debugLogfile = RDCGETLOGFILE();
+
+      AddConfigCall(configCalls, loc, "INTERNAL_SetDebugLogFile", (void *)debugLogfile.c_str(),
+                    debugLogfile.size() + 1);
+
+      AddConfigCall(configCalls, loc, "INTERNAL_SetCaptureOptions", (CaptureOptions *)&opts,
+                    sizeof(CaptureOptions));
+
+      AddConfigCall(configCalls, loc, "INTERNAL_GetTargetControlIdent", &result.second,
+                    sizeof(result.second));
+
+      if(!env.empty())
       {
-        rdcstr name = e.name.trimmed();
-        rdcstr value = e.value;
-        EnvMod mod = e.mod;
-        EnvSep sep = e.sep;
+        for(const EnvironmentModification &e : env)
+        {
+          rdcstr name = e.name.trimmed();
+          rdcstr value = e.value;
+          EnvMod mod = e.mod;
+          EnvSep sep = e.sep;
 
-        if(name == "")
-          break;
+          if(name == "")
+            break;
 
-        InjectFunctionCall(hProcess, loc, "INTERNAL_EnvModName", (void *)name.c_str(),
-                           name.size() + 1);
-        InjectFunctionCall(hProcess, loc, "INTERNAL_EnvModValue", (void *)value.c_str(),
-                           value.size() + 1);
-        InjectFunctionCall(hProcess, loc, "INTERNAL_EnvSep", &sep, sizeof(sep));
-        InjectFunctionCall(hProcess, loc, "INTERNAL_EnvMod", &mod, sizeof(mod));
+          AddConfigCall(configCalls, loc, "INTERNAL_EnvModName", (void *)name.c_str(),
+                        name.size() + 1);
+          AddConfigCall(configCalls, loc, "INTERNAL_EnvModValue", (void *)value.c_str(),
+                        value.size() + 1);
+          AddConfigCall(configCalls, loc, "INTERNAL_EnvSep", &sep, sizeof(sep));
+          AddConfigCall(configCalls, loc, "INTERNAL_EnvMod", &mod, sizeof(mod));
+        }
+
+        // parameter is unused
+        void *dummy = NULL;
+        AddConfigCall(configCalls, loc, "INTERNAL_ApplyEnvMods", &dummy, sizeof(dummy));
       }
 
-      // parameter is unused
-      void *dummy = NULL;
-      InjectFunctionCall(hProcess, loc, "INTERNAL_ApplyEnvMods", &dummy, sizeof(dummy));
+      InjectPayloadPhaseBC(hProcess, resultPtr, configCalls, &result.second, sizeof(result.second));
+    }
+    else if(hijackThread == NULL)
+    {
+      if(!capturefile.empty())
+        InjectFunctionCallRemoteThread(hProcess, loc, "INTERNAL_SetCaptureFile",
+                                       (void *)capturefile.c_str(), capturefile.size() + 1);
+
+      rdcstr debugLogfile = RDCGETLOGFILE();
+
+      InjectFunctionCallRemoteThread(hProcess, loc, "INTERNAL_SetDebugLogFile",
+                                     (void *)debugLogfile.c_str(), debugLogfile.size() + 1);
+
+      InjectFunctionCallRemoteThread(hProcess, loc, "INTERNAL_SetCaptureOptions",
+                                     (CaptureOptions *)&opts, sizeof(CaptureOptions));
+
+      InjectFunctionCallRemoteThread(hProcess, loc, "INTERNAL_GetTargetControlIdent",
+                                     &result.second, sizeof(result.second));
+
+      if(!env.empty())
+      {
+        for(const EnvironmentModification &e : env)
+        {
+          rdcstr name = e.name.trimmed();
+          rdcstr value = e.value;
+          EnvMod mod = e.mod;
+          EnvSep sep = e.sep;
+
+          if(name == "")
+            break;
+
+          InjectFunctionCallRemoteThread(hProcess, loc, "INTERNAL_EnvModName",
+                                         (void *)name.c_str(), name.size() + 1);
+          InjectFunctionCallRemoteThread(hProcess, loc, "INTERNAL_EnvModValue",
+                                         (void *)value.c_str(), value.size() + 1);
+          InjectFunctionCallRemoteThread(hProcess, loc, "INTERNAL_EnvSep", &sep, sizeof(sep));
+          InjectFunctionCallRemoteThread(hProcess, loc, "INTERNAL_EnvMod", &mod, sizeof(mod));
+        }
+
+        // parameter is unused
+        void *dummy = NULL;
+        InjectFunctionCallRemoteThread(hProcess, loc, "INTERNAL_ApplyEnvMods", &dummy,
+                                       sizeof(dummy));
+      }
     }
   }
+
+  if(hijackThread)
+    CloseHandle(hijackThread);
 
   if(waitForExit)
     WaitForSingleObject(hProcess, INFINITE);
@@ -1148,7 +1703,7 @@ rdcpair<RDResult, uint32_t> Process::LaunchAndInjectIntoProcess(
     RDResult result;
     SET_ERROR_RESULT(
         result, ResultCode::InjectionFailed,
-        "For safety reasons RenderDoc does not support capturing executables with a "
+        "For safety reasons RenderTest does not support capturing executables with a "
         "reserved system filename such as '%s'. Please rename your executable to capture.",
         get_basename(app).c_str());
     return {result, 0};
@@ -1221,7 +1776,7 @@ static RDResult HandleRegError(HKEY keyNative, HKEY keyWow32, LSTATUS ret, const
 
   RETURN_ERROR_RESULT(ResultCode::InjectionFailed,
                       "Error updating registry to enable global hook.\n"
-                      "Check that RenderDoc is correctly running as administrator.");
+                      "Check that RenderTest is correctly running as administrator.");
 }
 
 #define REG_CHECK(msg)                                    \
@@ -1247,8 +1802,8 @@ RDResult BackupAndChangeRegistry(GlobalHookData &hookdata, const rdcstr &shimpat
   {
     RETURN_ERROR_RESULT(
         ResultCode::FileIOFailed,
-        "RenderDoc is installed on a volume or system that has short paths disabled.\n"
-        "For the global hook, short paths must be enabled where RenderDoc is installed.");
+        "RenderTest is installed on a volume or system that has short paths disabled.\n"
+        "For the global hook, short paths must be enabled where RenderTest is installed.");
   }
 
   if(!shimpathWow32.empty())
@@ -1260,8 +1815,8 @@ RDResult BackupAndChangeRegistry(GlobalHookData &hookdata, const rdcstr &shimpat
     {
       RETURN_ERROR_RESULT(
           ResultCode::FileIOFailed,
-          "RenderDoc is installed on a volume or system that has short paths disabled.\n"
-          "For the global hook, short paths must be enabled where RenderDoc is installed.");
+          "RenderTest is installed on a volume or system that has short paths disabled.\n"
+          "For the global hook, short paths must be enabled where RenderTest is installed.");
     }
   }
 
@@ -1379,7 +1934,7 @@ RDResult BackupAndChangeRegistry(GlobalHookData &hookdata, const rdcstr &shimpat
   // write it to disk but don't fail if we can't, just print it to the log and keep going.
   wchar_t reg_backup[MAX_PATH];
   GetTempPathW(MAX_PATH, reg_backup);
-  wcscat_s(reg_backup, L"RenderDoc_RestoreGlobalHook.reg");
+  wcscat_s(reg_backup, L"RENDERTEST_RestoreGlobalHook.reg");
 
   FILE *f = NULL;
   _wfopen_s(&f, reg_backup, L"w");
@@ -1492,57 +2047,57 @@ RDResult Process::StartGlobalHook(const rdcstr &pathmatch, const rdcstr &capture
                         "Invalid global hook parameter, empty path to match");
   }
 
-  rdcstr renderdocPath;
-  FileIO::GetLibraryFilename(renderdocPath);
+  rdcstr RenderTestPath;
+  FileIO::GetLibraryFilename(RenderTestPath);
 
-  renderdocPath = get_dirname(renderdocPath);
+  RenderTestPath = get_dirname(RenderTestPath);
 
-  // the native renderdoccmd.exe is always next to the dll. Wow32 will be somewhere else
-  rdcstr cmdpathNative = renderdocPath + "\\renderdoccmd.exe";
+  // the native RenderTestcmd.exe is always next to the dll. Wow32 will be somewhere else
+  rdcstr cmdpathNative = RenderTestPath + "\\RenderTestcmd.exe";
   rdcstr cmdpathWow32;
 
-  rdcstr shimpathNative = renderdocPath;
+  rdcstr shimpathNative = RenderTestPath;
   rdcstr shimpathWow32;
 
 #if ENABLED(RDOC_X64)
 
-  // native shim is just renderdocshim64.dll
-  shimpathNative = renderdocPath + "\\renderdocshim64.dll";
+  // native shim is just RenderTestshim64.dll
+  shimpathNative = RenderTestPath + "\\RenderTestshim64.dll";
 
   // if it looks like we're in the development environment, look for the alternate bitness in the
   // corresponding folder
-  int devLocation = renderdocPath.find("\\x64\\Development");
+  int devLocation = RenderTestPath.find("\\x64\\Development");
   if(devLocation >= 0)
   {
-    renderdocPath.erase(devLocation, ~0U);
+    RenderTestPath.erase(devLocation, ~0U);
 
-    shimpathWow32 = renderdocPath + "\\Win32\\Development\\renderdocshim32.dll";
-    cmdpathWow32 = renderdocPath + "\\Win32\\Development\\renderdoccmd.exe";
+    shimpathWow32 = RenderTestPath + "\\Win32\\Development\\RenderTestshim32.dll";
+    cmdpathWow32 = RenderTestPath + "\\Win32\\Development\\RenderTestcmd.exe";
   }
   else
   {
-    devLocation = renderdocPath.find("\\x64\\Release");
+    devLocation = RenderTestPath.find("\\x64\\Release");
 
     if(devLocation >= 0)
     {
-      renderdocPath.erase(devLocation, ~0U);
+      RenderTestPath.erase(devLocation, ~0U);
 
-      shimpathWow32 = renderdocPath + "\\Win32\\Release\\renderdocshim32.dll";
-      cmdpathWow32 = renderdocPath + "\\Win32\\Release\\renderdoccmd.exe";
+      shimpathWow32 = RenderTestPath + "\\Win32\\Release\\RenderTestshim32.dll";
+      cmdpathWow32 = RenderTestPath + "\\Win32\\Release\\RenderTestcmd.exe";
     }
   }
 
   // if we're not in the dev environment, assume it's under a x86\ subfolder
   if(devLocation < 0)
   {
-    shimpathWow32 = renderdocPath + "\\x86\\renderdocshim32.dll";
-    cmdpathWow32 = renderdocPath + "\\x86\\renderdoccmd.exe";
+    shimpathWow32 = RenderTestPath + "\\x86\\RenderTestshim32.dll";
+    cmdpathWow32 = RenderTestPath + "\\x86\\RenderTestcmd.exe";
   }
 
 #else
 
   // nothing fancy to do here for 32-bit, just point the shim next to our dll.
-  shimpathNative = renderdocPath + "\\renderdocshim32.dll";
+  shimpathNative = RenderTestPath + "\\RenderTestshim32.dll";
 
 #endif
 
@@ -1630,7 +2185,7 @@ RDResult Process::StartGlobalHook(const rdcstr &pathmatch, const rdcstr &capture
   {
     CloseHandle(hookdata.dataNative.pipe);
     RestoreRegistry(hookdata);
-    RETURN_ERROR_RESULT(ResultCode::InternalError, "Can't launch renderdoccmd from '%s' (err %u)",
+    RETURN_ERROR_RESULT(ResultCode::InternalError, "Can't launch RenderTestcmd from '%s' (err %u)",
                         cmdpathNative.c_str(), err);
   }
 
@@ -1639,7 +2194,7 @@ RDResult Process::StartGlobalHook(const rdcstr &pathmatch, const rdcstr &capture
 
   RDCEraseEl(pi);
 
-// repeat the process for the Wow32 renderdoccmd
+// repeat the process for the Wow32 RenderTestcmd
 #if ENABLED(RDOC_X64)
   params = StringFormat::Fmt(
       "\"%s\" globalhook --match \"%s\" --capfile \"%s\" --debuglog \"%s\" --capopts \"%s\"",
@@ -1691,7 +2246,7 @@ RDResult Process::StartGlobalHook(const rdcstr &pathmatch, const rdcstr &capture
     CloseHandle(hookdata.dataNative.pipe);
     CloseHandle(hookdata.dataWow32.pipe);
     RestoreRegistry(hookdata);
-    RETURN_ERROR_RESULT(ResultCode::InternalError, "Can't launch renderdoccmd from '%s' (err %u)",
+    RETURN_ERROR_RESULT(ResultCode::InternalError, "Can't launch RenderTestcmd from '%s' (err %u)",
                         cmdpathWow32.c_str(), err);
   }
 
