@@ -1,0 +1,558 @@
+From 451588315d7a2b4160af7e2fe48af6b0fab59f45 Mon Sep 17 00:00:00 2001
+From: RailgunHamster <railgunhamster@qq.com>
+Date: Sun, 24 May 2026 15:36:45 +0800
+Subject: [PATCH 3/3] build: add Python 3.12 build scripts and fix .gitignore
+ for tools/build/
+
+- build_py312.ps1: auto-install Python 3.12 via uv, build Release x64
+- build_py312.bat: simple Release x64 build wrapper
+- release.bat: full pipeline with Python 3.12, pyrenderdoc modules, fast_injector
+- pack_dist.py: pack dist with python312 and pymodules/.pyd files
+- .gitignore: scope build/ rule to root only so tools/build/ is tracked
+---
+ .gitignore                           |   4 +-
+ tools/build/BUILD_PYTHON_OVERRIDE.md | 149 ++++++++++++++++++++++
+ tools/build/build_py312.bat          |  14 ++
+ tools/build/build_py312.ps1          |  27 ++++
+ tools/build/pack.bat                 |   3 +
+ tools/build/pack_dist.py             | 184 +++++++++++++++++++++++++++
+ tools/build/release.bat              | 100 +++++++++++++++
+ 7 files changed, 479 insertions(+), 2 deletions(-)
+ create mode 100644 tools/build/BUILD_PYTHON_OVERRIDE.md
+ create mode 100644 tools/build/build_py312.bat
+ create mode 100644 tools/build/build_py312.ps1
+ create mode 100644 tools/build/pack.bat
+ create mode 100644 tools/build/pack_dist.py
+ create mode 100644 tools/build/release.bat
+
+diff --git a/.gitignore b/.gitignore
+index 8a5481d3f..9b5746a5c 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -7,8 +7,8 @@ Development32/
+ Development64/
+ Release32/
+ Release64/
+-build/
+-build-*/
++/build/
++/build-*/
+ /compile_commands.json
+ .cache/
+ /dist/
+diff --git a/tools/build/BUILD_PYTHON_OVERRIDE.md b/tools/build/BUILD_PYTHON_OVERRIDE.md
+new file mode 100644
+index 000000000..57f071c0a
+--- /dev/null
++++ b/tools/build/BUILD_PYTHON_OVERRIDE.md
+@@ -0,0 +1,149 @@
++# Building RenderDoc with Python 3.12
++
++## Quick Start
++
++```powershell
++# One command - installs Python 3.12 via uv, builds Release x64
++powershell -ExecutionPolicy Bypass -File build_py312.ps1
++```
++
++Or for the full release pipeline (x64 + Win32 + pack):
++
++```cmd
++release.bat
++```
++
++---
++
++## How It Works
++
++### Python 3.12 via uv
++
++The build uses `uv` to manage a clean Python 3.12 installation. The first run of `build_py312.ps1` will:
++
++1. Call `uv python install 3.12.13` to get a pristine CPython
++2. Prepare a build directory at `<repo_root>/py312-build/` with the files `python.props` expects:
++   - `include/Python.h` (headers)
++   - `python312.lib` (import library)
++   - `python312.zip` (standard library, zipped from `Lib/`)
++   - `python312.dll`
++
++### python.props Detection
++
++`qrenderdoc/Code/pyrenderdoc/python.props` checks for a custom Python via:
++
++1. `VSPythonOverridePath` MSBuild property (used in our scripts)
++2. `RENDERDOC_PYTHON_PREFIX64` / `RENDERDOC_PYTHON_PREFIX32` environment variables
++3. Default bundled Python 3.6 in `qrenderdoc/3rdparty/python/`
++
++It auto-detects the version by checking for `python312.lib`, `python312.zip`, and `include/Python.h`.
++
++---
++
++## Scripts
++
++| Script | Purpose |
++|--------|---------|
++| `build_py312.ps1` | Full build: installs Python 3.12 via uv, builds Release x64 solution |
++| `build_py312.bat` | Build Release x64 only (assumes `py312-build/` already exists) |
++| `release.bat` | Full release pipeline: x64 + Win32 + Python modules + fast_injector + pack |
++| `pack.bat` | Pack build output into `dist/` and create `.7z` archive |
++| `pack_dist.py` | Python script that copies files and creates the archive |
++
++---
++
++## Manual Setup (without scripts)
++
++If you want to set up Python 3.12 manually:
++
++```powershell
++# Install via uv
++uv python install 3.12.13
++
++# Find the path
++$pyRoot = Split-Path (uv python find 3.12.13)
++
++# Prepare build directory
++$buildDir = "D:\git\renderdoc\py312-build"
++New-Item -ItemType Directory -Path $buildDir -Force
++Copy-Item -Recurse "$pyRoot\include" "$buildDir\include"
++Copy-Item "$pyRoot\libs\python312.lib" "$buildDir\python312.lib"
++Copy-Item "$pyRoot\python312.dll" "$buildDir\python312.dll"
++Add-Type -AssemblyName System.IO.Compression.FileSystem
++[System.IO.Compression.ZipFile]::CreateFromDirectory("$pyRoot\Lib", "$buildDir\python312.zip")
++```
++
++Then build:
++
++```powershell
++msbuild renderdoc.sln /p:Configuration=Release /p:Platform=x64 /p:VSPythonOverridePath="D:\git\renderdoc\py312-build" /m /v:minimal
++```
++
++---
++
++## Verify
++
++After a successful build, you should see:
++
++```
++Built against python from D:\git\renderdoc\py312-build
++```
++
++Output files:
++
++```
++x64\Release\pymodules\
++├── renderdoc.pyd       (Core API)
++├── renderdoc.lib
++├── renderdoc.pdb
++├── qrenderdoc.pyd      (Qt UI API)
++├── qrenderdoc.lib
++└── qrenderdoc.pdb
++```
++
++Test import:
++
++```python
++import sys, os
++sys.path.insert(0, r'x64\Release\pymodules')
++os.add_dll_directory(r'x64\Release')
++import renderdoc as rd
++print(rd.CullMode.FrontAndBack)  # 3
++```
++
++---
++
++## Platform Toolset
++
++- **v145** = project default (VS 2015 compatible)
++- Current VS 18 MSBuild handles this automatically; no override needed.
++
++---
++
++## renderdoc-mcp Integration
++
++The built `renderdoc.pyd` and `qrenderdoc.pyd` are compatible with Python 3.12. To use with renderdoc-mcp:
++
++1. Add `x64\Release\pymodules\` to `PYTHONPATH`
++2. Or copy `.pyd` files into your Python 3.12 environment's `site-packages`
++3. Ensure `rhdoc.dll` is accessible via `os.add_dll_directory()` or PATH
++
++---
++
++## Troubleshooting
++
++| Issue | Solution |
++|-------|----------|
++| `ImportError: DLL load failed` | Python version mismatch - rebuild with matching Python |
++| `uv not found` | Install uv: `irm https://astral.sh/uv/install.ps1 \| iex` |
++| `MSBuild not found` | Check VS install path in scripts |
++| `python312.zip missing` | `build_py312.ps1` creates it automatically |
++| `Python.h not found` | Verify `py312-build/include/Python.h` exists |
++
++---
++
++## References
++
++- `qrenderdoc/Code/pyrenderdoc/python.props` - Python version detection logic
++- `qrenderdoc/Code/pyrenderdoc/pyrenderdoc_module.vcxproj` - pyrenderdoc project
++- `qrenderdoc/Code/pyrenderdoc/qrenderdoc_module.vcxproj` - qrenderdoc module project
+diff --git a/tools/build/build_py312.bat b/tools/build/build_py312.bat
+new file mode 100644
+index 000000000..8544a4df8
+--- /dev/null
++++ b/tools/build/build_py312.bat
+@@ -0,0 +1,14 @@
++@echo off
++setlocal
++
++set ROOT=%~dp0..\..
++set PY_DIR=%ROOT%\py312-build
++set MSBUILD=C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\MSBuild.exe
++
++if not exist "%PY_DIR%\python312.lib" (
++    echo Python 3.12 build dir not found. Run build_py312.ps1 first, or prepare %PY_DIR% manually.
++    exit /b 1
++)
++
++echo Using Python from: %PY_DIR%
++"%MSBUILD%" "%ROOT%\renderdoc.sln" /p:Configuration=Release /p:Platform=x64 /p:VSPythonOverridePath="%PY_DIR%" /m /v:minimal
+diff --git a/tools/build/build_py312.ps1 b/tools/build/build_py312.ps1
+new file mode 100644
+index 000000000..1ad24ebef
+--- /dev/null
++++ b/tools/build/build_py312.ps1
+@@ -0,0 +1,27 @@
++$ErrorActionPreference = "Stop"
++
++$Root = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path))
++$PyDir = Join-Path $Root "py312-build"
++$Msbuild = "C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\MSBuild.exe"
++
++if (-not (Test-Path $PyDir)) {
++    $pyInstall = uv python find 3.12.13 2>$null
++    if (-not $pyInstall) {
++        Write-Host "Installing Python 3.12.13 via uv..."
++        uv python install 3.12.13
++        $pyInstall = uv python find 3.12.13
++    }
++    $pyRoot = Split-Path -Parent $pyInstall
++    Write-Host "Preparing Python 3.12 build dir: $PyDir"
++    New-Item -ItemType Directory -Path $PyDir -Force | Out-Null
++    Copy-Item -Path "$pyRoot\include" -Destination "$PyDir\include" -Recurse -Force
++    Copy-Item -Path "$pyRoot\libs\python312.lib" -Destination "$PyDir\python312.lib" -Force
++    Copy-Item -Path "$pyRoot\python312.dll" -Destination "$PyDir\python312.dll" -Force
++    if (-not (Test-Path "$PyDir\python312.zip")) {
++        Add-Type -AssemblyName System.IO.Compression.FileSystem
++        [System.IO.Compression.ZipFile]::CreateFromDirectory("$pyRoot\Lib", "$PyDir\python312.zip")
++    }
++}
++
++Write-Host "Python 3.12 build dir: $PyDir"
++& $Msbuild "$Root\renderdoc.sln" /p:Configuration=Release /p:Platform=x64 /p:VSPythonOverridePath="$PyDir" /m /v:minimal
+diff --git a/tools/build/pack.bat b/tools/build/pack.bat
+new file mode 100644
+index 000000000..fba341e60
+--- /dev/null
++++ b/tools/build/pack.bat
+@@ -0,0 +1,3 @@
++@echo off
++uv run pack_dist.py
++pause
+diff --git a/tools/build/pack_dist.py b/tools/build/pack_dist.py
+new file mode 100644
+index 000000000..c551f4b9a
+--- /dev/null
++++ b/tools/build/pack_dist.py
+@@ -0,0 +1,184 @@
++# /// script
++# requires-python = ">=3.12"
++# ///
++import shutil
++import subprocess
++from pathlib import Path
++
++ROOT = Path(__file__).parent.parent.parent
++DIST_DIR = ROOT / "dist"
++
++X64_FILES = [
++    "renderdoccmd.exe",
++    "rhdoc.dll",
++    "rhdoc.json",
++    "renderdocshim64.dll",
++    "renderdoc_app.h",
++    "rhdocui.exe",
++    "qrhdoc.exe",
++    "d3dcompiler_47.dll",
++    "dbghelp.dll",
++    "symsrv.dll",
++    "symsrv.yes",
++    "python312.dll",
++    "python312.zip",
++    "_ctypes.pyd",
++    "Qt5Core.dll",
++    "Qt5Gui.dll",
++    "Qt5Network.dll",
++    "Qt5Svg.dll",
++    "Qt5Widgets.dll",
++    "fast_injector.exe",
++]
++
++X64_EXTRA = {
++    str(ROOT / "tools" / "inject" / "hook_infinity.bat"): "hook_infinity.bat",
++}
++
++X64_PYMODULES = {
++    "pymodules/renderdoc.pyd": "pymodules/renderdoc.pyd",
++    "pymodules/qrenderdoc.pyd": "pymodules/qrenderdoc.pyd",
++}
++
++X64_QT_PLUGINS = {
++    "qtplugins/imageformats/qsvg.dll": "qtplugins/imageformats/qsvg.dll",
++    "qtplugins/platforms/qwindows.dll": "qtplugins/platforms/qwindows.dll",
++}
++
++WIN32_FILES = [
++    "renderdoccmd.exe",
++    "rhdoc.dll",
++    "rhdoc.json",
++    "renderdoc_app.h",
++    "d3dcompiler_47.dll",
++    "dbghelp.dll",
++    "symsrv.dll",
++    "symsrv.yes",
++]
++
++ARCHIVE_NAME = "renderdoc.7z"
++
++
++def find_7z():
++    for name in ("7z", "7z.exe"):
++        p = shutil.which(name)
++        if p:
++            return p
++    for c in [
++        Path(r"C:\Program Files\7-Zip\7z.exe"),
++        Path(r"C:\Program Files (x86)\7-Zip\7z.exe"),
++    ]:
++        if c.exists():
++            return str(c)
++    return None
++
++
++def copy_files(build_dir, dist_dir, files, sub_files=None, qt_plugins=None):
++    copied = 0
++    missing = 0
++    for name in files:
++        src = build_dir / name
++        dst = dist_dir / name
++        if src.exists():
++            shutil.copy2(src, dst)
++            copied += 1
++        else:
++            print(f"    MISSING: {name}")
++            missing += 1
++    if sub_files:
++        for rel_src, rel_dst in sub_files.items():
++            src = build_dir / rel_src
++            dst = dist_dir / rel_dst
++            dst.parent.mkdir(parents=True, exist_ok=True)
++            if src.exists():
++                shutil.copy2(src, dst)
++                copied += 1
++            else:
++                print(f"    MISSING: {rel_src}")
++                missing += 1
++    if qt_plugins:
++        for rel_src, rel_dst in qt_plugins.items():
++            src = build_dir / rel_src
++            dst = dist_dir / rel_dst
++            dst.parent.mkdir(parents=True, exist_ok=True)
++            if src.exists():
++                shutil.copy2(src, dst)
++                copied += 1
++            else:
++                print(f"    MISSING: {rel_src}")
++                missing += 1
++    return copied, missing
++
++
++def make_archive(sevenz, dist_dir, archive_path):
++    if archive_path.exists():
++        archive_path.unlink()
++    all_files = [
++        f.relative_to(dist_dir)
++        for f in dist_dir.rglob("*")
++        if f.is_file() and f.name != archive_path.name
++    ]
++    if not all_files:
++        print("  No files to archive!")
++        return
++    cmd = [sevenz, "a", str(archive_path), "-mx=5"] + [str(p) for p in all_files]
++    result = subprocess.run(cmd, cwd=dist_dir, capture_output=True, text=True)
++    if result.returncode == 0:
++        size_mb = archive_path.stat().st_size / (1024 * 1024)
++        print(f"  {archive_path.name} ({size_mb:.1f} MB)")
++    else:
++        print(f"  7z failed: {result.stderr}")
++
++
++def main():
++    DIST_DIR.mkdir(parents=True, exist_ok=True)
++    total_copied = 0
++    total_missing = 0
++
++    x64_build = ROOT / "x64" / "Release"
++    if x64_build.exists():
++        print("x64 -> dist/")
++        c, m = copy_files(x64_build, DIST_DIR, X64_FILES, X64_PYMODULES, X64_QT_PLUGINS)
++        total_copied += c
++        total_missing += m
++        for src, dst_name in X64_EXTRA.items():
++            src = Path(src)
++            dst = DIST_DIR / dst_name
++            if src.exists():
++                shutil.copy2(src, dst)
++                total_copied += 1
++            else:
++                print(f"    MISSING: {src}")
++                total_missing += 1
++        print(f"  {total_copied} files copied")
++    else:
++        print("x64: build not found, skipping")
++
++    win32_build = ROOT / "Win32" / "Release"
++    if win32_build.exists():
++        print("Win32 -> dist/x86/")
++        win32_dist = DIST_DIR / "x86"
++        win32_dist.mkdir(parents=True, exist_ok=True)
++        c, m = copy_files(win32_build, win32_dist, WIN32_FILES)
++        total_copied += c
++        total_missing += m
++        print(f"  {c} files copied")
++    else:
++        print("Win32: build not found, skipping")
++
++    print(f"\nTotal: {total_copied} files copied")
++    if total_missing:
++        print(f"  {total_missing} missing")
++
++    sevenz = find_7z()
++    if sevenz:
++        print("\nCompressing...")
++        make_archive(sevenz, DIST_DIR, DIST_DIR / ARCHIVE_NAME)
++    else:
++        print("\n7z not found, skipping archive")
++
++    return 0
++
++
++if __name__ == "__main__":
++    raise SystemExit(main())
+diff --git a/tools/build/release.bat b/tools/build/release.bat
+new file mode 100644
+index 000000000..3fd98c1ef
+--- /dev/null
++++ b/tools/build/release.bat
+@@ -0,0 +1,100 @@
++@echo off
++setlocal
++
++set MSBUILD=C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\MSBuild.exe
++set ROOT=D:\git\renderdoc
++set SLN_DIR=%ROOT%\
++set PY_DIR=%ROOT%\py312-build
++set ARGS=/p:Configuration=Release /p:SolutionDir=%SLN_DIR% /p:VSPythonOverridePath="%PY_DIR%" /v:minimal /m
++
++if not exist "%MSBUILD%" (
++    echo MSBuild not found at %MSBUILD%
++    exit /b 1
++)
++
++if not exist "%PY_DIR%\python312.lib" (
++    echo Python 3.12 build dir not found at %PY_DIR%
++    echo Run build_py312.ps1 first to prepare it.
++    exit /b 1
++)
++
++echo Using Python 3.12 from: %PY_DIR%
++
++echo.
++echo ===== x64 renderdoc =====
++"%MSBUILD%" %ROOT%\renderdoc\renderdoc.vcxproj /p:Platform=x64 %ARGS%
++if errorlevel 1 goto :fail
++
++echo.
++echo ===== x64 renderdoccmd =====
++"%MSBUILD%" %ROOT%\renderdoccmd\renderdoccmd.vcxproj /p:Platform=x64 %ARGS%
++if errorlevel 1 goto :fail
++
++echo.
++echo ===== x64 qrenderdoc =====
++"%MSBUILD%" %ROOT%\qrenderdoc\qrenderdoc_local.vcxproj /p:Platform=x64 %ARGS%
++if errorlevel 1 goto :fail
++
++echo.
++echo ===== x64 pyrenderdoc_module =====
++"%MSBUILD%" %ROOT%\qrenderdoc\Code\pyrenderdoc\pyrenderdoc_module.vcxproj /p:Platform=x64 %ARGS%
++if errorlevel 1 goto :fail
++
++echo.
++echo ===== x64 qrenderdoc_module =====
++"%MSBUILD%" %ROOT%\qrenderdoc\Code\pyrenderdoc\qrenderdoc_module.vcxproj /p:Platform=x64 %ARGS%
++if errorlevel 1 goto :fail
++
++echo.
++echo ===== x64 renderdocshim =====
++"%MSBUILD%" %ROOT%\renderdocshim\renderdocshim.vcxproj /p:Platform=x64 %ARGS%
++if errorlevel 1 goto :fail
++
++echo.
++echo ===== Win32 breakpad =====
++"%MSBUILD%" %ROOT%\renderdoc\3rdparty\breakpad\client\windows\common.vcxproj /p:Platform=Win32 %ARGS%
++if errorlevel 1 goto :fail
++"%MSBUILD%" %ROOT%\renderdoc\3rdparty\breakpad\client\windows\crash_generation\crash_generation_client.vcxproj /p:Platform=Win32 %ARGS%
++if errorlevel 1 goto :fail
++"%MSBUILD%" %ROOT%\renderdoc\3rdparty\breakpad\client\windows\crash_generation\crash_generation_server.vcxproj /p:Platform=Win32 %ARGS%
++if errorlevel 1 goto :fail
++"%MSBUILD%" %ROOT%\renderdoc\3rdparty\breakpad\client\windows\handler\exception_handler.vcxproj /p:Platform=Win32 %ARGS%
++if errorlevel 1 goto :fail
++
++echo.
++echo ===== Win32 renderdoccmd =====
++"%MSBUILD%" %ROOT%\renderdoccmd\renderdoccmd.vcxproj /p:Platform=Win32 %ARGS%
++if errorlevel 1 goto :fail
++
++echo.
++echo ===== Win32 renderdocshim =====
++"%MSBUILD%" %ROOT%\renderdocshim\renderdocshim.vcxproj /p:Platform=Win32 %ARGS%
++if errorlevel 1 goto :fail
++
++echo.
++echo ===== Compile fast_injector =====
++call :compile_injector
++if errorlevel 1 goto :fail
++
++echo.
++echo ===== Packing =====
++cd /d "%~dp0"
++uv run pack_dist.py
++if errorlevel 1 goto :fail
++
++echo.
++echo Done!
++exit /b 0
++
++:compile_injector
++set "VC=C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.50.35717"
++set "SDK=C:\Program Files (x86)\Windows Kits\10"
++set "OUTDIR=%ROOT%\x64\Release"
++pushd "%OUTDIR%"
++"%VC%\bin\Hostx64\x64\cl.exe" /O2 /MT /EHsc /I"%VC%\include" /I"%SDK%\Include\10.0.26100.0\shared" /I"%SDK%\Include\10.0.26100.0\um" /I"%SDK%\Include\10.0.26100.0\ucrt" /Fe"%OUTDIR%\fast_injector.exe" "%ROOT%\tools\inject\fast_injector.cpp" /link /LIBPATH:"%VC%\lib\x64" /LIBPATH:"%SDK%\Lib\10.0.26100.0\um\x64" /LIBPATH:"%SDK%\Lib\10.0.26100.0\ucrt\x64"
++popd
++exit /b %errorlevel%
++
++:fail
++echo FAILED
++exit /b 1
+-- 
+2.54.0.windows.1
+

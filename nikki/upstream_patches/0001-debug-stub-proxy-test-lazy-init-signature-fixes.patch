@@ -1,0 +1,489 @@
+From 2a98ac770fd6a6c176cfc1d8fd2a889f5d72d021 Mon Sep 17 00:00:00 2001
+From: RailgunHamster <railgunhamster@qq.com>
+Date: Sat, 25 Apr 2026 22:03:10 +0800
+Subject: [PATCH 1/3] debug: stub proxy test + lazy init + signature fixes
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+**Key finding from stub test (d3d12_stub.cpp):**
+- Stub proxy (all forwarders return E_FAIL, no System32 load): game RUNS
+- D3D12CreateDevice returns DXGI_ERROR_UNSUPPORTED → D3D11 fallback
+- Streamline/DLSS crashes internally but game continues
+- Proves the d3d12 proxy loading System32 d3d12 triggers the crash
+
+**Changes in this commit:**
+- D3D12CoreRegisterLayers signature fix (UINT→D3D12CORE_LAYERED_DEVICE_VERSION)
+- Moved System32 d3d12 load from DllMain to lazy init (first FWD call)
+  - Prevents D3D12Core init under loader lock
+  - But crash still occurs (not the root cause)
+- Crash callstack analysis: D3D12GetInterface+0x6F → D3D12Core ACCESS_VIOLATION
+- Crash symptom consistent: writing NULL+9 in D3D12Core
+- Three source code hypotheses addressed:
+  1. Forwarder signature mismatch → fixed, not root cause
+  2. Recursive LoadLibrary in DllMain → fixed (lazy init), not root cause
+  3. Two d3d12 modules in process → ongoing investigation
+---
+ tools/inject/proxy_d3d12/d3d12_proxy.cpp      |  19 +-
+ tools/inject/proxy_d3d12/d3d12_stub.cpp       |  38 +++
+ .../inject/proxy_xinput/xinput_proxy_v12.cpp  | 229 ++++++++++++++++++
+ tools/inject/test_gp_chain.cpp                |  84 +++++++
+ tools/inject/test_xinput_load.cpp             |  21 ++
+ 5 files changed, 385 insertions(+), 6 deletions(-)
+ create mode 100644 tools/inject/proxy_d3d12/d3d12_stub.cpp
+ create mode 100644 tools/inject/proxy_xinput/xinput_proxy_v12.cpp
+ create mode 100644 tools/inject/test_gp_chain.cpp
+ create mode 100644 tools/inject/test_xinput_load.cpp
+
+diff --git a/tools/inject/proxy_d3d12/d3d12_proxy.cpp b/tools/inject/proxy_d3d12/d3d12_proxy.cpp
+index a7fb9d09c..a96baf42b 100644
+--- a/tools/inject/proxy_d3d12/d3d12_proxy.cpp
++++ b/tools/inject/proxy_d3d12/d3d12_proxy.cpp
+@@ -50,7 +50,7 @@ static void LoadRealD3D12()
+     Log("ERROR: System32 d3d12.dll load failed (err=%u)\n", GetLastError());
+ }
+ 
+-#define FWD(name) g_lastFwd = #name
++#define FWD(name) g_lastFwd = #name; LoadRealD3D12()
+ 
+ extern "C" HRESULT WINAPI _exp_D3D12GetDebugInterface(REFIID riid, void **ppvDebug)
+ { FWD(D3D12GetDebugInterface);
+@@ -110,9 +110,14 @@ extern "C" HRESULT WINAPI _exp_D3D12CreateVersionedRootSignatureDeserializer(
+   return p ? p(pSrcData, SrcDataSizeInBytes, pRootSignatureDeserializerInterface, ppRootSignatureDeserializer) : E_FAIL;
+ }
+ 
+-extern "C" HRESULT WINAPI _exp_D3D12CoreCreateLayeredDevice(void *pLayeredDevice, REFIID riid, void **ppvDevice)
++// Typedefs for D3D12 core internal types (not in public SDK)
++typedef UINT D3D12CORE_LAYERED_DEVICE_VERSION;
++struct D3D12CORE_LAYERED_DEVICE { void *pVtbl; UINT Version; };
++
++extern "C" HRESULT WINAPI _exp_D3D12CoreCreateLayeredDevice(
++    D3D12CORE_LAYERED_DEVICE *pLayeredDevice, REFIID riid, void **ppvDevice)
+ { FWD(D3D12CoreCreateLayeredDevice);
+-  typedef HRESULT(WINAPI *PFN)(void *, REFIID, void **);
++  typedef HRESULT(WINAPI *PFN)(D3D12CORE_LAYERED_DEVICE *, REFIID, void **);
+   static PFN p = NULL; if(!p) p = GetReal<PFN>("D3D12CoreCreateLayeredDevice");
+   return p ? p(pLayeredDevice, riid, ppvDevice) : E_FAIL;
+ }
+@@ -124,9 +129,10 @@ extern "C" SIZE_T WINAPI _exp_D3D12CoreGetLayeredDeviceSize(const void *unknown,
+   return p ? p(unknown, numArgs) : 0;
+ }
+ 
+-extern "C" UINT WINAPI _exp_D3D12CoreRegisterLayers(void *pLayers, UINT numLayers)
++extern "C" D3D12CORE_LAYERED_DEVICE_VERSION WINAPI _exp_D3D12CoreRegisterLayers(
++    D3D12CORE_LAYERED_DEVICE *pLayers, UINT numLayers)
+ { FWD(D3D12CoreRegisterLayers);
+-  typedef UINT(WINAPI *PFN)(void *, UINT);
++  typedef D3D12CORE_LAYERED_DEVICE_VERSION(WINAPI *PFN)(D3D12CORE_LAYERED_DEVICE *, UINT);
+   static PFN p = NULL; if(!p) p = GetReal<PFN>("D3D12CoreRegisterLayers");
+   return p ? p(pLayers, numLayers) : 0;
+ }
+@@ -261,7 +267,8 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD reason, LPVOID lpReserved)
+   {
+     DeleteFileW(LOG_FILE);
+     Log("=== d3d12 proxy DllMain ===\n");
+-    LoadRealD3D12();
++    // Do NOT load System32 d3d12 here - recursive LoadLibrary during DllMain
++    // causes D3D12Core to initialize under loader lock → corrupted state → crash
+     Log("=== d3d12 proxy DllMain done ===\n");
+   }
+   else if(reason == DLL_PROCESS_DETACH)
+diff --git a/tools/inject/proxy_d3d12/d3d12_stub.cpp b/tools/inject/proxy_d3d12/d3d12_stub.cpp
+new file mode 100644
+index 000000000..9705479cc
+--- /dev/null
++++ b/tools/inject/proxy_d3d12/d3d12_stub.cpp
+@@ -0,0 +1,38 @@
++#include <windows.h>
++#define LOG_FILE L"C:\\Users\\Administrator\\d3d12_proxy.log"
++static void Log(const char *fmt) {
++  HANDLE f = CreateFileW(LOG_FILE, FILE_APPEND_DATA, FILE_SHARE_READ|FILE_SHARE_WRITE, NULL, OPEN_ALWAYS, 0, NULL);
++  if(f != INVALID_HANDLE_VALUE) { DWORD w; WriteFile(f, fmt, (DWORD)strlen(fmt), &w, NULL); CloseHandle(f); }
++}
++static const char *g_lastFwd = "none";
++#define STUB(name, ret, ...) \
++  extern "C" __declspec(dllexport) ret WINAPI _exp_##name(__VA_ARGS__) { g_lastFwd = #name; Log("STUB: " #name "\n"); return (ret)0; }
++
++STUB(D3D12GetDebugInterface, HRESULT, REFIID riid, void **ppvDebug)
++STUB(D3D12GetInterface, HRESULT, REFIID riid, void **ppv)
++STUB(D3D12EnableExperimentalFeatures, HRESULT, UINT a, const IID *b, void *c, UINT *d)
++STUB(D3D12SerializeRootSignature, HRESULT, void *a, int b, void **c, void **d)
++STUB(D3D12SerializeVersionedRootSignature, HRESULT, void *a, void **b, void **c)
++STUB(D3D12CreateRootSignatureDeserializer, HRESULT, void *a, SIZE_T b, REFIID c, void **d)
++STUB(D3D12CreateVersionedRootSignatureDeserializer, HRESULT, void *a, SIZE_T b, REFIID c, void **d)
++STUB(D3D12CoreCreateLayeredDevice, HRESULT, void *a, REFIID b, void **c)
++STUB(D3D12CoreGetLayeredDeviceSize, SIZE_T, const void *a, UINT b)
++STUB(D3D12CoreRegisterLayers, UINT, void *a, UINT b)
++STUB(D3D12DeviceRemovedExtendedData, HRESULT, void *a, int b, void *c)
++STUB(SetAppCompatStringPointer, HRESULT, const char *a, const char *b)
++STUB(GetBehaviorValue, HRESULT, void *a, void *b)
++STUB(D3D12PIXEventsReplaceBlock, HRESULT, void *a, void *b, void *c, void *d)
++STUB(D3D12PIXGetThreadInfo, void, void *a)
++STUB(D3D12PIXNotifyWakeFromFenceSignal, HRESULT, void *a, int b)
++STUB(D3D12PIXReportCounter, HRESULT, void *a, void *b)
++STUB(Ordinal99, HRESULT)
++
++extern "C" __declspec(dllexport) HRESULT WINAPI D3D12CreateDevice(void *a, int b, REFIID c, void **d) {
++  g_lastFwd = "D3D12CreateDevice"; Log("STUB: D3D12CreateDevice\n"); return 0x887E0003;
++}
++
++BOOL APIENTRY DllMain(HMODULE h, DWORD r, LPVOID l) {
++  if(r == DLL_PROCESS_ATTACH) { DeleteFileW(LOG_FILE); Log("=== STUB proxy ===\n"); }
++  else if(r == DLL_PROCESS_DETACH) { Log("=== STUB DETACH: last="); Log(g_lastFwd); Log(" ===\n"); }
++  return TRUE;
++}
+diff --git a/tools/inject/proxy_xinput/xinput_proxy_v12.cpp b/tools/inject/proxy_xinput/xinput_proxy_v12.cpp
+new file mode 100644
+index 000000000..f4c66abc2
+--- /dev/null
++++ b/tools/inject/proxy_xinput/xinput_proxy_v12.cpp
+@@ -0,0 +1,229 @@
++#include <windows.h>
++#include <stdio.h>
++
++#pragma comment(lib, "kernel32.lib")
++
++#define LOG_FILE L"C:\\Users\\Administrator\\xinput_proxy.log"
++
++static void Log(const char *msg)
++{
++  HANDLE f = CreateFileA("C:\\Users\\Administrator\\xinput_proxy.log", FILE_APPEND_DATA,
++                         FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_ALWAYS, 0, NULL);
++  if(f != INVALID_HANDLE_VALUE)
++  {
++    DWORD written;
++    WriteFile(f, msg, (DWORD)strlen(msg), &written, NULL);
++    WriteFile(f, "\r\n", 2, &written, NULL);
++    CloseHandle(f);
++  }
++}
++
++static void LogBytes(const char *prefix, void *addr, int count)
++{
++  char buf[256]; int pos = 0;
++  while(*prefix && pos < 200) buf[pos++] = *prefix++;
++  buf[pos++] = ':'; buf[pos++] = ' ';
++  BYTE *p = (BYTE *)addr;
++  for(int i = 0; i < count && pos < 230; i++)
++  {
++    buf[pos++] = "0123456789ABCDEF"[p[i] >> 4];
++    buf[pos++] = "0123456789ABCDEF"[p[i] & 0xF];
++    buf[pos++] = ' ';
++  }
++  buf[pos] = 0; Log(buf);
++}
++
++static void PebUnlinkModule(void *base)
++{
++  BYTE *peb = (BYTE *)__readgsqword(0x60);
++  BYTE *ldr = *(BYTE **)(peb + 0x18);
++  BYTE *head = *(BYTE **)(ldr + 0x10);
++  BYTE *cur = head;
++  int count = 0;
++  while(count < 500)
++  {
++    BYTE *next = *(BYTE **)cur;
++    if(next == head) break;
++    void *dllBase = *(void **)(cur + 0x30);
++    if(dllBase == base)
++    {
++      *(BYTE **)(*(BYTE **)(cur + 0x00) + 0x08) = *(BYTE **)(cur + 0x08);
++      *(BYTE **)(*(BYTE **)(cur + 0x08) + 0x00) = *(BYTE **)(cur + 0x00);
++      *(BYTE **)(*(BYTE **)(cur + 0x10) + 0x18) = *(BYTE **)(cur + 0x18);
++      *(BYTE **)(*(BYTE **)(cur + 0x18) + 0x10) = *(BYTE **)(cur + 0x10);
++      *(BYTE **)(*(BYTE **)(cur + 0x20) + 0x28) = *(BYTE **)(cur + 0x28);
++      *(BYTE **)(*(BYTE **)(cur + 0x28) + 0x20) = *(BYTE **)(cur + 0x20);
++      Log("PEB unlinked");
++      return;
++    }
++    cur = next; count++;
++  }
++  Log("PEB unlink: not found");
++}
++
++static void *FollowJmpChain(void *addr)
++{
++  BYTE *p = (BYTE *)addr;
++  for(int i = 0; i < 32; i++)
++  {
++    // Skip mov r8, [rsp] (x64 GP prologue)
++    if(p[0] == 0x4C && p[1] == 0x8B && p[2] == 0x04 && p[3] == 0x24)
++    { p += 4; continue; }
++    // REX.W + jmp [rip+disp32]
++    int off = 0;
++    if(p[0] == 0x48) off = 1;
++    if(p[off] == 0xFF && p[off+1] == 0x25)
++    {
++      INT32 disp = *(INT32 *)&p[off+2];
++      p = *(BYTE **)((UINT64)(p + off + 6) + disp);
++      continue;
++    }
++    // jmp rel32
++    if(p[0] == 0xE9)
++    {
++      INT32 disp = *(INT32 *)&p[1];
++      p = p + 5 + disp;
++      continue;
++    }
++    break;
++  }
++  return p;
++}
++
++typedef FARPROC(WINAPI *PFN_GetProcAddress)(HMODULE, LPCSTR);
++typedef HRESULT(WINAPI *PFN_D3D12CreateDevice)(void *, int, REFIID, void **);
++
++static void *g_realGP = NULL;
++static BYTE g_savedGP[16] = {};
++static int g_savedSize = 0;
++static volatile LONG g_intercepted = 0;
++static CRITICAL_SECTION g_cs;
++
++static void LoadRhdoc()
++{
++  wchar_t path[MAX_PATH];
++  GetModuleFileNameW(NULL, path, MAX_PATH);
++  wchar_t *slash = wcsrchr(path, L'\\');
++  if(slash)
++    wcscpy_s(slash + 1, MAX_PATH - (slash + 1 - path), L"rhdoc.dll");
++
++  HMODULE h = LoadLibraryW(path);
++  if(h)
++  {
++    Log("rhdoc loaded OK");
++    PebUnlinkModule((void *)h);
++  }
++  else
++    Log("rhdoc LOAD FAILED");
++}
++
++static FARPROC WINAPI HookedGP(HMODULE hModule, LPCSTR lpProcName)
++{
++  if(g_intercepted)
++    return ((PFN_GetProcAddress)g_realGP)(hModule, lpProcName);
++
++  EnterCriticalSection(&g_cs);
++
++  // Restore original bytes to call the real GP
++  DWORD old;
++  VirtualProtect(g_realGP, g_savedSize, PAGE_EXECUTE_READWRITE, &old);
++  memcpy(g_realGP, g_savedGP, g_savedSize);
++  VirtualProtect(g_realGP, g_savedSize, old, &old);
++  FlushInstructionCache(GetCurrentProcess(), g_realGP, g_savedSize);
++
++  FARPROC result = ((PFN_GetProcAddress)g_realGP)(hModule, lpProcName);
++
++  // Check if this is D3D12CreateDevice resolution
++  if(!g_intercepted && lpProcName && HIWORD(lpProcName) != 0 &&
++     strcmp(lpProcName, "D3D12CreateDevice") == 0)
++  {
++    InterlockedExchange(&g_intercepted, 1);
++    Log("D3D12CreateDevice intercepted via GP!");
++    LoadRhdoc();
++    LeaveCriticalSection(&g_cs);
++    return result;  // Return real system d3d12 function pointer
++  }
++
++  // Re-install hook if not yet intercepted
++  if(!g_intercepted)
++  {
++    BYTE patch[16];
++    memset(patch, 0x90, sizeof(patch));
++    patch[0] = 0xFF; patch[1] = 0x25; *(DWORD *)&patch[2] = 0;
++    *(UINT64 *)&patch[6] = (UINT64)&HookedGP;
++    VirtualProtect(g_realGP, g_savedSize, PAGE_EXECUTE_READWRITE, &old);
++    memcpy(g_realGP, patch, g_savedSize);
++    VirtualProtect(g_realGP, g_savedSize, old, &old);
++    FlushInstructionCache(GetCurrentProcess(), g_realGP, g_savedSize);
++  }
++
++  LeaveCriticalSection(&g_cs);
++  return result;
++}
++
++// Forward XInput functions
++static HMODULE g_hRealXInput = NULL;
++
++#define XINPUT_FWD(name, ret, params, args, errret) \
++  extern "C" ret WINAPI name params \
++  { \
++    static ret(WINAPI *p) params = NULL; \
++    if(!p && g_hRealXInput) p = (decltype(p))GetProcAddress(g_hRealXInput, #name); \
++    return p ? p args : errret; \
++  }
++
++XINPUT_FWD(XInputGetState, DWORD, (DWORD a, void *b), (a, b), 1167)
++XINPUT_FWD(XInputSetState, DWORD, (DWORD a, void *b), (a, b), 1167)
++XINPUT_FWD(XInputGetCapabilities, DWORD, (DWORD a, DWORD b, void *c), (a, b, c), 1167)
++XINPUT_FWD(XInputGetKeystroke, DWORD, (DWORD a, DWORD b, void *c), (a, b, c), 1167)
++XINPUT_FWD(XInputGetBatteryInformation, DWORD, (DWORD a, BYTE b, void *c), (a, b, c), 1167)
++XINPUT_FWD(XInputGetAudioDeviceIds, DWORD, (DWORD a, void *b, void *c, void *d, void *e), (a, b, c, d, e), 1167)
++XINPUT_FWD(XInputEnable, void, (BOOL a), (a), (void)0)
++
++extern "C" void WINAPI PIXGetThreadInfo(void *) {}
++extern "C" void WINAPI PIXEventsReplaceBlock(void *) {}
++
++BOOL APIENTRY DllMain(HMODULE hModule, DWORD reason, LPVOID reserved)
++{
++  (void)hModule; (void)reserved;
++
++  if(reason == DLL_PROCESS_ATTACH)
++  {
++    InitializeCriticalSection(&g_cs);
++    DeleteFileW(LOG_FILE);
++    Log("=== XINPUT proxy v12 (fixed GP chain) ===");
++
++    // Load real XInput
++    wchar_t xinputPath[MAX_PATH];
++    GetSystemDirectoryW(xinputPath, MAX_PATH);
++    wcscat(xinputPath, L"\\XINPUT1_4.dll");
++    g_hRealXInput = LoadLibraryW(xinputPath);
++    Log(g_hRealXInput ? "real XINPUT loaded" : "XINPUT FAILED");
++
++    // Find and hook real GetProcAddress
++    void *gpAddr = (void *)GetProcAddress(GetModuleHandleA("kernel32.dll"), "GetProcAddress");
++    LogBytes("kernel32 GP", gpAddr, 8);
++
++    void *realGP = FollowJmpChain(gpAddr);
++    LogBytes("real GP", realGP, 16);
++
++    g_realGP = realGP;
++    g_savedSize = 16;
++    memcpy(g_savedGP, realGP, 16);
++
++    BYTE patch[16];
++    memset(patch, 0x90, sizeof(patch));
++    patch[0] = 0xFF; patch[1] = 0x25; *(DWORD *)&patch[2] = 0;
++    *(UINT64 *)&patch[6] = (UINT64)&HookedGP;
++
++    DWORD old;
++    VirtualProtect(realGP, 16, PAGE_EXECUTE_READWRITE, &old);
++    memcpy(realGP, patch, 16);
++    VirtualProtect(realGP, 16, old, &old);
++    FlushInstructionCache(GetCurrentProcess(), realGP, 16);
++    Log("inline GP hook installed");
++
++    Log("=== DllMain done ===");
++  }
++  return TRUE;
++}
+diff --git a/tools/inject/test_gp_chain.cpp b/tools/inject/test_gp_chain.cpp
+new file mode 100644
+index 000000000..f1041e86b
+--- /dev/null
++++ b/tools/inject/test_gp_chain.cpp
+@@ -0,0 +1,84 @@
++#include <windows.h>
++#include <stdio.h>
++
++static void Log(const char *msg) {
++  HANDLE f = CreateFileA("C:\\Users\\Administrator\\gp_trace.log", FILE_APPEND_DATA,
++                          FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_ALWAYS, 0, NULL);
++  if(f != INVALID_HANDLE_VALUE) {
++    DWORD written; WriteFile(f, msg, (DWORD)strlen(msg), &written, NULL);
++    WriteFile(f, "\r\n", 2, &written, NULL); CloseHandle(f);
++  }
++}
++
++static void LogBytes(const char *prefix, void *addr, int count) {
++  char buf[256]; int pos = 0;
++  while(*prefix && pos < 200) buf[pos++] = *prefix++;
++  buf[pos++] = ':'; buf[pos++] = ' ';
++  BYTE *p = (BYTE *)addr;
++  for(int i = 0; i < count && pos < 230; i++) {
++    buf[pos++] = "0123456789ABCDEF"[p[i] >> 4];
++    buf[pos++] = "0123456789ABCDEF"[p[i] & 0xF];
++    buf[pos++] = ' ';
++  }
++  buf[pos] = 0; Log(buf);
++}
++
++static void *FollowJmpChain(void *addr) {
++  BYTE *p = (BYTE *)addr;
++  for(int i = 0; i < 32; i++) {
++    // Skip mov r8, [rsp] (4C 8B 04 24) - x64 GP prologue
++    if(p[0] == 0x4C && p[1] == 0x8B && p[2] == 0x04 && p[3] == 0x24) {
++      p += 4;
++      continue;
++    }
++    // jmp [rip+disp32] (FF 25 xx xx xx xx) with optional REX.W (48)
++    int off = 0;
++    if(p[0] == 0x48) off = 1;  // REX.W prefix
++    if(p[off] == 0xFF && p[off+1] == 0x25) {
++      INT32 disp = *(INT32 *)&p[off+2];
++      p = *(BYTE **)((UINT64)(p + off + 6) + disp);
++      continue;
++    }
++    // jmp rel32 (E9 xx xx xx xx)
++    if(p[0] == 0xE9) {
++      INT32 disp = *(INT32 *)&p[1];
++      p = p + 5 + disp;
++      continue;
++    }
++    break;
++  }
++  return p;
++}
++
++int main() {
++  DeleteFileA("C:\\Users\\Administrator\\gp_trace.log");
++
++  void *gpAddr = (void *)GetProcAddress(GetModuleHandleA("kernel32.dll"), "GetProcAddress");
++  LogBytes("kernel32!GP", gpAddr, 16);
++
++  void *chain = FollowJmpChain(gpAddr);
++  LogBytes("real GP (followed)", chain, 16);
++
++  // Also check kernelbase
++  HMODULE kb = LoadLibraryA("kernelbase.dll");
++  if(kb) {
++    void *kb_gp = (void *)GetProcAddress(kb, "GetProcAddress");
++    LogBytes("kernelbase!GP", kb_gp, 16);
++    void *kb_chain = FollowJmpChain(kb_gp);
++    LogBytes("kernelbase GP (followed)", kb_chain, 16);
++  }
++
++  // Check ntdll
++  HMODULE nt = GetModuleHandleA("ntdll.dll");
++  if(nt) {
++    void *nt_gp = (void *)GetProcAddress(nt, "LdrGetProcedureAddress");
++    LogBytes("ntdll!LdrGetProcAddr", nt_gp, 16);
++  }
++
++  // Also check if there's a known export we can verify
++  void *realGP = FollowJmpChain(gpAddr);
++  LogBytes("real GP bytes", realGP, 32);
++
++  printf("Done. Check C:\\Users\\Administrator\\gp_trace.log\n");
++  return 0;
++}
+diff --git a/tools/inject/test_xinput_load.cpp b/tools/inject/test_xinput_load.cpp
+new file mode 100644
+index 000000000..d19f2a194
+--- /dev/null
++++ b/tools/inject/test_xinput_load.cpp
+@@ -0,0 +1,21 @@
++#include <windows.h>
++#include <stdio.h>
++int main() {
++  HMODULE h = LoadLibraryA("XINPUT1_4.dll");  // Should NOT find system one because test dir doesn't have it
++  printf("System XInput: %p\n", h);
++  
++  // Load our proxy explicitly
++  h = LoadLibraryW(L"C:\\Users\\Administrator\\game\\InfinityNikki Launcher\\InfinityNikki\\X6Game\\Binaries\\Win64\\XINPUT1_4.dll");
++  printf("Proxy XInput: %p (err=%u)\n", h, GetLastError());
++  
++  // Check log
++  HANDLE f = CreateFileA("C:\\Users\\Administrator\\xinput_proxy.log", GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
++  if(f != INVALID_HANDLE_VALUE) {
++    char buf[4096]; DWORD r;
++    ReadFile(f, buf, sizeof(buf)-1, &r, NULL); buf[r]=0; CloseHandle(f);
++    printf("Log:\n%s\n", buf);
++  } else {
++    printf("No log created\n");
++  }
++  return 0;
++}
+-- 
+2.54.0.windows.1
+

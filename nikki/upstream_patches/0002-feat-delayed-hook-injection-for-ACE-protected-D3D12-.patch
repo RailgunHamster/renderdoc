@@ -1,0 +1,525 @@
+From e7371cf460896bb7f83dc0710519cac3b69b1076 Mon Sep 17 00:00:00 2001
+From: RailgunHamster <railgunhamster@qq.com>
+Date: Sun, 26 Apr 2026 09:33:53 +0800
+Subject: [PATCH 2/3] feat: delayed hook injection for ACE-protected D3D12
+ games
+
+- Add RENDERDOC_DELAY_HOOKS/NO_INIT env vars to skip hook registration in rhdoc DllMain
+- Export RHDOC_WrapD3D12Device, RHDOC_InstallDelayedHooks from rhdoc for post-creation device wrapping
+- Rewrite d3d12 proxy: call real D3D12CreateDevice first, then load rhdoc and wrap device
+- Fast-fail ForAllModules on ERROR_PARTIAL_COPY to avoid loader lock deadlock
+- Key finding: PEB unlinking triggers ACE anti-cheat; without it ACE detects rhdoc ~45s after load
+---
+ renderdoc/driver/d3d12/d3d12_hooks.cpp   |  12 +-
+ renderdoc/driver/dxgi/dxgi_hooks.cpp     |  11 ++
+ renderdoc/os/win32/win32_hook.cpp        |  16 +-
+ renderdoc/os/win32/win32_libentry.cpp    |  27 +++-
+ renderdoc/replay/app_api.cpp             |  66 ++++++++
+ tools/inject/proxy_d3d12/d3d12_proxy.cpp | 191 +++++++++++++++--------
+ 6 files changed, 254 insertions(+), 69 deletions(-)
+
+diff --git a/renderdoc/driver/d3d12/d3d12_hooks.cpp b/renderdoc/driver/d3d12/d3d12_hooks.cpp
+index e12848c1b..e3ec78b5e 100644
+--- a/renderdoc/driver/d3d12/d3d12_hooks.cpp
++++ b/renderdoc/driver/d3d12/d3d12_hooks.cpp
+@@ -556,7 +556,17 @@ public:
+ 
+     WrappedIDXGISwapChain4::RegisterD3DDeviceCallback(GetD3D12DeviceIfAlloc);
+ 
+-    // also require d3dcompiler_??.dll
++    char *skipD3D12 = NULL;
++    size_t len = 0;
++    _dupenv_s(&skipD3D12, &len, "RENDERDOC_SKIP_D3D12_HOOKS");
++    if(skipD3D12 && skipD3D12[0] == '1')
++    {
++      RDCLOG("RENDERDOC_SKIP_D3D12_HOOKS=1, skipping D3D12 hooks");
++      free(skipD3D12);
++      return;
++    }
++    free(skipD3D12);
++
+     if(GetD3DCompiler() == NULL)
+     {
+       RDCERR("Failed to load d3dcompiler_??.dll - not inserting D3D12 hooks.");
+diff --git a/renderdoc/driver/dxgi/dxgi_hooks.cpp b/renderdoc/driver/dxgi/dxgi_hooks.cpp
+index 9d2ecac77..e336b1acc 100644
+--- a/renderdoc/driver/dxgi/dxgi_hooks.cpp
++++ b/renderdoc/driver/dxgi/dxgi_hooks.cpp
+@@ -249,6 +249,17 @@ public:
+   {
+     RDCLOG("Registering DXGI hooks");
+ 
++    char *skipD3D12 = NULL;
++    size_t len = 0;
++    _dupenv_s(&skipD3D12, &len, "RENDERDOC_SKIP_D3D12_HOOKS");
++    if(skipD3D12 && skipD3D12[0] == '1')
++    {
++      RDCLOG("RENDERDOC_SKIP_D3D12_HOOKS=1, skipping DXGI hooks");
++      free(skipD3D12);
++      return;
++    }
++    free(skipD3D12);
++
+     LibraryHooks::RegisterLibraryHook("dxgi.dll", NULL);
+ 
+     CreateDXGIFactory.Register("dxgi.dll", "CreateDXGIFactory", CreateDXGIFactory_hook);
+diff --git a/renderdoc/os/win32/win32_hook.cpp b/renderdoc/os/win32/win32_hook.cpp
+index b3ec59710..e335af582 100644
+--- a/renderdoc/os/win32/win32_hook.cpp
++++ b/renderdoc/os/win32/win32_hook.cpp
+@@ -975,7 +975,6 @@ static void ForAllModules(std::function<void(const MODULEENTRY32 &me32)> callbac
+ {
+   HANDLE hModuleSnap = INVALID_HANDLE_VALUE;
+ 
+-  // up to 10 retries
+   for(int i = 0; i < 10; i++)
+   {
+     hModuleSnap = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, GetCurrentProcessId());
+@@ -986,12 +985,16 @@ static void ForAllModules(std::function<void(const MODULEENTRY32 &me32)> callbac
+ 
+       RDCWARN("CreateToolhelp32Snapshot() -> 0x%08x", err);
+ 
+-      // retry if error is ERROR_BAD_LENGTH
+       if(err == ERROR_BAD_LENGTH)
+         continue;
++
++      if(err == ERROR_PARTIAL_COPY)
++      {
++        RDCWARN("ERROR_PARTIAL_COPY - likely under loader lock, skipping module enumeration");
++        return;
++      }
+     }
+ 
+-    // didn't retry, or succeeded
+     break;
+   }
+ 
+@@ -1199,7 +1202,12 @@ HMODULE WINAPI Hooked_LoadLibraryExW(LPCWSTR lpLibFileName, HANDLE fileHandle, D
+   DWORD err = GetLastError();
+ 
+   if(dohook && mod && !IsAPISet(lpLibFileName))
+-    HookAllModules();
++  {
++    if(s_HookData->hookAll)
++    {
++      HookAllModules();
++    }
++  }
+ 
+   SetLastError(err);
+ 
+diff --git a/renderdoc/os/win32/win32_libentry.cpp b/renderdoc/os/win32/win32_libentry.cpp
+index 087ac037b..2a07d4ad7 100644
+--- a/renderdoc/os/win32/win32_libentry.cpp
++++ b/renderdoc/os/win32/win32_libentry.cpp
+@@ -39,8 +39,6 @@ static BOOL add_hooks()
+ 
+   rdcstr f = get_basename(strlower(StringFormat::Wide2UTF8(curFile)));
+ 
+-  // bail immediately if we're in a system process. We don't want to hook, log, anything -
+-  // this instance is being used for a shell extension.
+   if(f == "dllhost.exe" || f == "explorer.exe")
+   {
+ #if ENABLED(RDOC_RELEASE)
+@@ -50,7 +48,6 @@ static BOOL add_hooks()
+     return TRUE;
+   }
+ 
+-  // search for an exported symbol with this name, typically renderdoc__replay__marker
+   if(LibraryHooks::Detect(STRINGIZE(RDOC_BASE_NAME) "__replay__marker"))
+   {
+     RDCDEBUG("Not creating hooks - in replay app");
+@@ -64,11 +61,35 @@ static BOOL add_hooks()
+     return true;
+   }
+ 
++  char *noInit = NULL;
++  size_t initLen = 0;
++  _dupenv_s(&noInit, &initLen, "RENDERDOC_NO_INIT");
++  if(noInit && noInit[0] == '1')
++  {
++    free(noInit);
++    OutputDebugStringA("[rhdoc] DllMain: RENDERDOC_NO_INIT=1, skipping everything\n");
++    return TRUE;
++  }
++  free(noInit);
++
++  char *delayHooks = NULL;
++  size_t len = 0;
++  _dupenv_s(&delayHooks, &len, "RENDERDOC_DELAY_HOOKS");
++  bool delayMode = (delayHooks && delayHooks[0] == '1');
++  free(delayHooks);
++
+   OutputDebugStringA("[rhdoc] DllMain: RenderDoc::Inst().Initialise()\n");
+   RenderDoc::Inst().Initialise();
+ 
+   RDCLOG("Loading into %ls", curFile);
+ 
++  if(delayMode)
++  {
++    RDCLOG("RENDERDOC_DELAY_HOOKS=1, skipping hook registration (delayed mode)");
++    OutputDebugStringA("[rhdoc] DllMain: delayed mode, hooks skipped\n");
++    return TRUE;
++  }
++
+   OutputDebugStringA("[rhdoc] DllMain: LibraryHooks::RegisterHooks()\n");
+   LibraryHooks::RegisterHooks();
+ 
+diff --git a/renderdoc/replay/app_api.cpp b/renderdoc/replay/app_api.cpp
+index b812c8003..fde36fbfb 100644
+--- a/renderdoc/replay/app_api.cpp
++++ b/renderdoc/replay/app_api.cpp
+@@ -28,9 +28,18 @@
+ #include "common/common.h"
+ #include "common/formatting.h"
+ #include "core/core.h"
++
++#if ENABLED(RDOC_WIN32)
++extern void Win32_ManualHookModule(rdcstr modName, HMODULE module);
++extern void Win32_RegisterManualModuleHooking();
++#endif
+ #include "hooks/hooks.h"
+ #include "serialise/rdcfile.h"
+ 
++#if ENABLED(RDOC_WIN32)
++#include "driver/d3d12/d3d12_device.h"
++#endif
++
+ static void SetFocusToggleKeys(RENDERDOC_InputButton *keys, int num)
+ {
+   RenderDoc::Inst().SetFocusKeys(keys, num);
+@@ -453,3 +462,60 @@ extern "C" RENDERDOC_API int RENDERDOC_CC RHDOC_GetAPI(RENDERDOC_Version version
+ 
+   return 0;
+ }
++
++extern "C" RENDERDOC_API void RENDERDOC_CC RHDOC_NotifyHookModule(const char *modName,
++                                                                   void *module)
++{
++#if ENABLED(RDOC_WIN32)
++  if(modName && module)
++    Win32_ManualHookModule(rdcstr(modName), (HMODULE)module);
++#else
++  (void)modName;
++  (void)module;
++#endif
++}
++
++extern "C" RENDERDOC_API void RENDERDOC_CC RHDOC_InstallDelayedHooks()
++{
++#if ENABLED(RDOC_WIN32)
++  RDCLOG("RHDOC_InstallDelayedHooks: installing delayed hooks");
++  LibraryHooks::RegisterHooks();
++  RDCLOG("RHDOC_InstallDelayedHooks: done");
++#else
++  LibraryHooks::RegisterHooks();
++#endif
++}
++
++extern "C" RENDERDOC_API HRESULT RENDERDOC_CC RHDOC_WrapD3D12Device(void *realDevice,
++                                                                      void **wrappedDevice,
++                                                                      REFIID riid)
++{
++  if(!realDevice || !wrappedDevice)
++    return E_INVALIDARG;
++
++  ID3D12Device *dev = (ID3D12Device *)realDevice;
++
++  if(WrappedID3D12Device::IsAlloc(dev))
++  {
++    *wrappedDevice = dev;
++    return S_OK;
++  }
++
++  D3D12InitParams params;
++  params.MinimumFeatureLevel = D3D_FEATURE_LEVEL_11_0;
++
++  WrappedID3D12Device *wrap = WrappedID3D12Device::Create(dev, params, false);
++  if(!wrap)
++    return E_FAIL;
++
++  HRESULT hr = wrap->QueryInterface(riid, wrappedDevice);
++  if(FAILED(hr))
++  {
++    wrap->Release();
++    return hr;
++  }
++
++  RDCLOG("RHDOC_WrapD3D12Device: wrapped device %p -> %p (riid=%s)", realDevice,
++         *wrappedDevice, ToStr(riid).c_str());
++  return S_OK;
++}
+diff --git a/tools/inject/proxy_d3d12/d3d12_proxy.cpp b/tools/inject/proxy_d3d12/d3d12_proxy.cpp
+index a96baf42b..5d3b88403 100644
+--- a/tools/inject/proxy_d3d12/d3d12_proxy.cpp
++++ b/tools/inject/proxy_d3d12/d3d12_proxy.cpp
+@@ -6,7 +6,6 @@
+ #pragma comment(lib, "kernel32.lib")
+ 
+ #define LOG_FILE L"C:\\Users\\Administrator\\d3d12_proxy.log"
+-#define LOAD_RHDOC 0
+ 
+ static void Log(const char *fmt, ...)
+ {
+@@ -25,31 +24,123 @@ static void Log(const char *fmt, ...)
+   }
+ }
+ 
+-// For crash diagnosis
+ static const char *g_lastFwd = "none";
+-
+ static HMODULE g_hReal = NULL;
++static HMODULE g_hRhdoc = NULL;
++static FARPROC(WINAPI *g_realGetProcAddress)(HMODULE, LPCSTR) = NULL;
+ extern "C" IMAGE_DOS_HEADER __ImageBase;
+ 
++typedef void(WINAPI *PFN_NotifyHookModule)(const char *, void *);
++typedef void(WINAPI *PFN_InstallDelayedHooks)(void);
++typedef HRESULT(WINAPI *PFN_WrapD3D12Device)(void *, void **, REFIID);
++
++static PFN_NotifyHookModule g_NotifyHookModule = NULL;
++static PFN_InstallDelayedHooks g_InstallDelayedHooks = NULL;
++static PFN_WrapD3D12Device g_WrapD3D12Device = NULL;
++static volatile LONG g_rhdocLoaded = 0;
++
++static void SaveRealGetProcAddress()
++{
++  if(g_realGetProcAddress) return;
++  HMODULE kernel32 = GetModuleHandleA("kernel32.dll");
++  if(kernel32)
++    g_realGetProcAddress = (FARPROC(WINAPI *)(HMODULE, LPCSTR))::GetProcAddress(kernel32, "GetProcAddress");
++}
++
+ template <typename T>
+ static inline T GetReal(const char *name)
+ {
+-  return (T)GetProcAddress(g_hReal, name);
++  if(!g_hReal) return NULL;
++  if(g_realGetProcAddress)
++    return (T)g_realGetProcAddress(g_hReal, name);
++  return (T)::GetProcAddress(g_hReal, name);
+ }
+ 
+ static void LoadRealD3D12()
+ {
+   if(g_hReal) return;
++  SaveRealGetProcAddress();
+   wchar_t path[MAX_PATH];
+   GetSystemDirectoryW(path, MAX_PATH);
+   wcscat_s(path, L"\\d3d12.dll");
+   g_hReal = LoadLibraryExW(path, NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
+   if(g_hReal)
+-    Log("Real d3d12 loaded from System32 at %p\n", g_hReal);
++    Log("Real d3d12 loaded at %p\n", g_hReal);
+   else
+     Log("ERROR: System32 d3d12.dll load failed (err=%u)\n", GetLastError());
+ }
+ 
++static void PebUnlinkModule(void *base)
++{
++  BYTE *peb = (BYTE *)__readgsqword(0x60);
++  BYTE *ldr = *(BYTE **)(peb + 0x18);
++  BYTE *head = *(BYTE **)(ldr + 0x10);
++  BYTE *cur = head;
++  int count = 0;
++  while(count < 500)
++  {
++    BYTE *next = *(BYTE **)cur;
++    if(next == head) break;
++    void *dllBase = *(void **)(cur + 0x30);
++    if(dllBase == base)
++    {
++      *(BYTE **)(*(BYTE **)(cur + 0x00) + 0x08) = *(BYTE **)(cur + 0x08);
++      *(BYTE **)(*(BYTE **)(cur + 0x08) + 0x00) = *(BYTE **)(cur + 0x00);
++      *(BYTE **)(*(BYTE **)(cur + 0x10) + 0x18) = *(BYTE **)(cur + 0x18);
++      *(BYTE **)(*(BYTE **)(cur + 0x18) + 0x10) = *(BYTE **)(cur + 0x10);
++      *(BYTE **)(*(BYTE **)(cur + 0x20) + 0x28) = *(BYTE **)(cur + 0x28);
++      *(BYTE **)(*(BYTE **)(cur + 0x28) + 0x20) = *(BYTE **)(cur + 0x20);
++      Log("PEB unlinked %p\n", base);
++      return;
++    }
++    cur = next;
++    count++;
++  }
++  Log("PEB unlink: not found\n");
++}
++
++static void LoadRhdoc()
++{
++  if(InterlockedCompareExchange(&g_rhdocLoaded, 0, 0) == 1)
++    return;
++
++  SetEnvironmentVariableA("RENDERDOC_DELAY_HOOKS", "1");
++
++  wchar_t myPath[MAX_PATH];
++  GetModuleFileNameW((HMODULE)&__ImageBase, myPath, MAX_PATH);
++  wchar_t *slash = wcsrchr(myPath, L'\\');
++  if(slash) wcscpy_s(slash + 1, MAX_PATH - (slash + 1 - myPath), L"dxil.dll");
++
++  static bool firstLoad = true;
++  if(firstLoad)
++  {
++    firstLoad = false;
++    Log("Delaying rhdoc load by 90s to avoid ACE detection...\n");
++    Sleep(90000);
++  }
++
++  Log("Loading rhdoc (delayed mode) from %ls\n", myPath);
++  g_hRhdoc = LoadLibraryW(myPath);
++  if(!g_hRhdoc)
++  {
++    Log("rhdoc LOAD FAILED: err=%u\n", GetLastError());
++    return;
++  }
++  Log("rhdoc at %p (hooks delayed)\n", g_hRhdoc);
++
++  //PebUnlinkModule((void *)g_hRhdoc);
++  //Log("PEB unlink SKIPPED\n");
++
++  g_NotifyHookModule = (PFN_NotifyHookModule)g_realGetProcAddress(g_hRhdoc, "RHDOC_NotifyHookModule");
++  g_InstallDelayedHooks = (PFN_InstallDelayedHooks)g_realGetProcAddress(g_hRhdoc, "RHDOC_InstallDelayedHooks");
++  g_WrapD3D12Device = (PFN_WrapD3D12Device)g_realGetProcAddress(g_hRhdoc, "RHDOC_WrapD3D12Device");
++
++  Log("rhdoc exports: NotifyHookModule=%p InstallDelayedHooks=%p WrapD3D12Device=%p\n",
++      g_NotifyHookModule, g_InstallDelayedHooks, g_WrapD3D12Device);
++
++  InterlockedExchange(&g_rhdocLoaded, 1);
++}
++
+ #define FWD(name) g_lastFwd = #name; LoadRealD3D12()
+ 
+ extern "C" HRESULT WINAPI _exp_D3D12GetDebugInterface(REFIID riid, void **ppvDebug)
+@@ -110,7 +201,6 @@ extern "C" HRESULT WINAPI _exp_D3D12CreateVersionedRootSignatureDeserializer(
+   return p ? p(pSrcData, SrcDataSizeInBytes, pRootSignatureDeserializerInterface, ppRootSignatureDeserializer) : E_FAIL;
+ }
+ 
+-// Typedefs for D3D12 core internal types (not in public SDK)
+ typedef UINT D3D12CORE_LAYERED_DEVICE_VERSION;
+ struct D3D12CORE_LAYERED_DEVICE { void *pVtbl; UINT Version; };
+ 
+@@ -190,13 +280,10 @@ extern "C" HRESULT WINAPI _exp_D3D12PIXReportCounter(void *a, void *b)
+ extern "C" HRESULT WINAPI _exp_Ordinal99(void)
+ { FWD(Ordinal99);
+   typedef HRESULT(WINAPI *PFN)(void);
+-  static PFN p = NULL; if(!p) p = (PFN)GetProcAddress(g_hReal, MAKEINTRESOURCEA(0));
++  static PFN p = NULL; if(!p) p = (PFN)g_realGetProcAddress(g_hReal, MAKEINTRESOURCEA(99));
+   return p ? p() : E_FAIL;
+ }
+ 
+-// --- D3D12CreateDevice ---
+-static int g_callState = 0;
+-
+ extern "C" HRESULT WINAPI D3D12CreateDevice(
+     IUnknown *pAdapter, D3D_FEATURE_LEVEL MinimumFeatureLevel,
+     REFIID riid, void **ppDevice)
+@@ -205,59 +292,41 @@ extern "C" HRESULT WINAPI D3D12CreateDevice(
+   typedef HRESULT(WINAPI *PFN)(IUnknown *, D3D_FEATURE_LEVEL, REFIID, void **);
+   static PFN pCachedReal = NULL;
+ 
+-#if LOAD_RHDOC
+-  if(g_callState >= 2)
+-  {
+-    if(!pCachedReal) pCachedReal = GetReal<PFN>("D3D12CreateDevice");
+-    return pCachedReal ? pCachedReal(pAdapter, MinimumFeatureLevel, riid, ppDevice) : E_FAIL;
+-  }
+-  if(g_callState == 1)
+-  {
+-    if(!pCachedReal) pCachedReal = GetReal<PFN>("D3D12CreateDevice");
+-    return pCachedReal ? pCachedReal(pAdapter, MinimumFeatureLevel, riid, ppDevice) : E_FAIL;
+-  }
+-
+-  g_callState = 1;
+-  Log("=== D3D12CreateDevice first call, loading rhdoc ===\n");
+-
+-  wchar_t myPath[MAX_PATH];
+-  GetModuleFileNameW((HMODULE)&__ImageBase, myPath, MAX_PATH);
+-  wchar_t *slash = wcsrchr(myPath, L'\\');
+-  if(slash) wcscpy_s(slash + 1, MAX_PATH - (slash + 1 - myPath), L"rhdoc.dll");
++  if(!pCachedReal && g_hReal)
++    pCachedReal = (PFN)g_realGetProcAddress(g_hReal, "D3D12CreateDevice");
+ 
+-  HMODULE hRhdoc = LoadLibraryW(myPath);
+-  if(hRhdoc) Log("rhdoc loaded at %p, PEB unlinking\n", hRhdoc);
+-  else Log("rhdoc LOAD FAILED: err=%u\n", GetLastError());
++  Log("D3D12CreateDevice: calling real (rhdoc not loaded yet)\n");
+ 
+-  g_callState = 2;
++  HRESULT hr = E_FAIL;
++  if(pCachedReal)
++    hr = pCachedReal(pAdapter, MinimumFeatureLevel, riid, ppDevice);
+ 
+-  BYTE *selfBytes = (BYTE *)D3D12CreateDevice;
+-  bool hooked = (selfBytes[0] == 0xFF && selfBytes[1] == 0x25);
+-  Log(hooked ? "rhdoc hooked D3D12CreateDevice (inline JMP detected)\n" :
+-               "rhdoc did NOT hook D3D12CreateDevice, forwarding directly\n");
++  Log("D3D12CreateDevice: hr=0x%08X dev=%p\n", hr, ppDevice ? *ppDevice : NULL);
+ 
+-  if(hooked)
++  if(SUCCEEDED(hr) && ppDevice && *ppDevice)
+   {
+-    PFN pSelf = (PFN)GetProcAddress((HMODULE)&__ImageBase, "D3D12CreateDevice");
+-    if(!pSelf) { Log("ERROR: GetProcAddress(self) failed\n");
+-      if(!pCachedReal) pCachedReal = GetReal<PFN>("D3D12CreateDevice");
+-      return pCachedReal ? pCachedReal(pAdapter, MinimumFeatureLevel, riid, ppDevice) : E_FAIL; }
+-    Log("Calling self -> rhdoc hook fires\n");
+-    HRESULT hr = pSelf(pAdapter, MinimumFeatureLevel, riid, ppDevice);
+-    Log("D3D12CreateDevice done: hr=0x%08X dev=%p\n", hr, ppDevice ? *ppDevice : NULL);
+-    return hr;
++    Log("D3D12CreateDevice: loading rhdoc now...\n");
++    LoadRhdoc();
++    Log("D3D12CreateDevice: rhdoc loaded=%d\n", g_rhdocLoaded);
++
++    void *wrappedDev = NULL;
++    if(g_WrapD3D12Device)
++    {
++      Log("D3D12CreateDevice: calling WrapD3D12Device(%p)...\n", *ppDevice);
++      HRESULT wrapHr = g_WrapD3D12Device(*ppDevice, &wrappedDev, riid);
++      Log("D3D12CreateDevice: WrapD3D12Device hr=0x%08X wrapped=%p\n", wrapHr, wrappedDev);
++      if(SUCCEEDED(wrapHr) && wrappedDev)
++        *ppDevice = wrappedDev;
++    }
++    else
++    {
++      Log("D3D12CreateDevice: no WrapD3D12Device, returning unwrapped device\n");
++    }
++
++    Log("D3D12CreateDevice: wrapping done, returning to game\n");
+   }
+-  else
+-  {
+-    if(!pCachedReal) pCachedReal = GetReal<PFN>("D3D12CreateDevice");
+-    HRESULT hr = pCachedReal ? pCachedReal(pAdapter, MinimumFeatureLevel, riid, ppDevice) : E_FAIL;
+-    Log("D3D12CreateDevice direct: hr=0x%08X dev=%p\n", hr, ppDevice ? *ppDevice : NULL);
+-    return hr;
+-  }
+-#else
+-  if(!pCachedReal) pCachedReal = GetReal<PFN>("D3D12CreateDevice");
+-  return pCachedReal ? pCachedReal(pAdapter, MinimumFeatureLevel, riid, ppDevice) : E_FAIL;
+-#endif
++
++  return hr;
+ }
+ 
+ BOOL APIENTRY DllMain(HMODULE hModule, DWORD reason, LPVOID lpReserved)
+@@ -266,14 +335,14 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD reason, LPVOID lpReserved)
+   if(reason == DLL_PROCESS_ATTACH)
+   {
+     DeleteFileW(LOG_FILE);
+-    Log("=== d3d12 proxy DllMain ===\n");
+-    // Do NOT load System32 d3d12 here - recursive LoadLibrary during DllMain
+-    // causes D3D12Core to initialize under loader lock → corrupted state → crash
++    Log("=== d3d12 proxy DllMain (lazy rhdoc) ===\n");
++    SaveRealGetProcAddress();
++    LoadRealD3D12();
+     Log("=== d3d12 proxy DllMain done ===\n");
+   }
+   else if(reason == DLL_PROCESS_DETACH)
+   {
+-    Log("=== DLL UNLOAD (crash?): last_fwd=%s ===\n", g_lastFwd);
++    Log("=== DLL UNLOAD: last_fwd=%s ===\n", g_lastFwd);
+   }
+   return TRUE;
+ }
+-- 
+2.54.0.windows.1
+
