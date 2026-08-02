@@ -12,7 +12,7 @@ static void ProxyLog(const char *fmt, ...)
   va_list args;
   va_start(args, fmt);
   FILE *f = NULL;
-  fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\version_proxy.log", "a");
+  fopen_s(&f, "D:\\git\\rendertst-nikki\\nikki\\version_proxy.log", "a");
   if(f)
   {
     fprintf(f, "%d: ", (int)GetCurrentProcessId());
@@ -116,7 +116,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD reason, LPVOID reserved)
     g_real = LoadLibraryW(L"version_real.dll");
 
     // configure renderdoc before loading it - the core reads these in DllMain
-    SetEnvironmentVariableA("RENDERDOC_CAPFILE", "D:\\git\\renderdoc-nikki\\nikki\\captures\\nikki");
+    SetEnvironmentVariableA("RENDERDOC_CAPFILE", "D:\\git\\rendertst-nikki\\nikki\\captures\\nikki");
 
     // Load rendertest.dll by ABSOLUTE path (same dir as this proxy), so we
     // never pick up a stale copy from the CWD/PATH search.
@@ -150,7 +150,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD reason, LPVOID reserved)
         opts[13] = 1;
         so(opts);
         if(scf)
-          scf("D:\\git\\renderdoc-nikki\\nikki\\captures\\nikki");
+          scf("D:\\git\\rendertst-nikki\\nikki\\captures\\nikki");
         ProxyLog("capture options configured (hookIntoChildren=true)");
       }
       else

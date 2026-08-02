@@ -629,7 +629,7 @@ public:
         {
           // proxy d3d12.dll loaded - skip inline hooking, proxy wraps devices
           FILE *f = NULL;
-          fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_inlinehook.txt", "a");
+          fopen_s(&f, "D:\\git\\rendertst-nikki\\nikki\\marker_inlinehook.txt", "a");
           if(f)
           {
             fprintf(f, "d3d12.dll is a proxy (%ls) - skipping inline hook in pid %d\n", modPath,
@@ -643,7 +643,7 @@ public:
 
     {
       FILE *f = NULL;
-      fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_inlinehook.txt", "a");
+      fopen_s(&f, "D:\\git\\rendertst-nikki\\nikki\\marker_inlinehook.txt", "a");
       if(f)
       {
         fprintf(f, "InstallInlineHooks in pid %d t=%llu, d3d12=%p\n", (int)GetCurrentProcessId(),
@@ -665,7 +665,7 @@ public:
       SaveInlineHookBytes(createDev, s_createDevOrig);
       PatchInlineHookBytes(createDev, (void *)&D3D12CreateDevice_hook);
       FILE *f = NULL;
-      fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_inlinehook.txt", "a");
+      fopen_s(&f, "D:\\git\\rendertst-nikki\\nikki\\marker_inlinehook.txt", "a");
       if(f)
       {
         fprintf(f, "  patched D3D12CreateDevice at %p (restore-call-repatch)\n", createDev);
@@ -712,7 +712,7 @@ public:
     // debug marker: confirm hook registration in the target process
     {
       FILE *f = NULL;
-      fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_d3d12_register.txt", "a");
+      fopen_s(&f, "D:\\git\\rendertst-nikki\\nikki\\marker_d3d12_register.txt", "a");
       if(f)
       {
         fprintf(f, "d3d12 hooks registered in pid %d t=%llu\n", (int)GetCurrentProcessId(),
@@ -723,9 +723,9 @@ public:
 
     // poll for d3d12.dll load and install inline hooks immediately, so that
     // bound-import resolution picks up our hooks instead of the real functions.
-    // Disabled by file switch for bisection: D:\git\renderdoc-nikki\nikki\nikkiproxy_disable_inline.txt
+    // Disabled by file switch for bisection: D:\git\rendertst-nikki\nikki\nikkiproxy_disable_inline.txt
     bool disableInline =
-        (GetFileAttributesA("D:\\git\\renderdoc-nikki\\nikki\\nikkiproxy_disable_inline.txt") != INVALID_FILE_ATTRIBUTES);
+        (GetFileAttributesA("D:\\git\\rendertst-nikki\\nikki\\nikkiproxy_disable_inline.txt") != INVALID_FILE_ATTRIBUTES);
     static bool pollStarted = false;
     if(!pollStarted && !disableInline)
     {
@@ -751,12 +751,12 @@ public:
 
     // Bisection switch: only CreateDevice+GetInterface (file marker)
     bool onlyCreateGetInterface =
-        (GetFileAttributesA("D:\\git\\renderdoc-nikki\\nikki\\nikkiproxy_only_create_getinterface.txt") !=
+        (GetFileAttributesA("D:\\git\\rendertst-nikki\\nikki\\nikkiproxy_only_create_getinterface.txt") !=
          INVALID_FILE_ATTRIBUTES);
 
     // Bisection switch: disable ALL d3d12 hooks entirely (file marker)
     bool disableAllD3D12 =
-        (GetFileAttributesA("D:\\git\\renderdoc-nikki\\nikki\\nikkiproxy_disable_d3d12_hooks.txt") !=
+        (GetFileAttributesA("D:\\git\\rendertst-nikki\\nikki\\nikkiproxy_disable_d3d12_hooks.txt") !=
          INVALID_FILE_ATTRIBUTES);
     if(disableAllD3D12)
     {
@@ -1114,7 +1114,7 @@ private:
     // debug marker: confirm the hook is actually called
     {
       FILE *f = NULL;
-      fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_d3d12_create.txt", "a");
+      fopen_s(&f, "D:\\git\\rendertst-nikki\\nikki\\marker_d3d12_create.txt", "a");
       if(f)
       {
         fprintf(f, "D3D12CreateDevice hook called in pid %d rsp=%p\n", (int)GetCurrentProcessId(),
@@ -1127,7 +1127,7 @@ private:
     // No trampoline is used - see InstallInlineHooks().
     {
       FILE *f = NULL;
-      fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_d3d12_create.txt", "a");
+      fopen_s(&f, "D:\\git\\rendertst-nikki\\nikki\\marker_d3d12_create.txt", "a");
       if(f)
       {
         fprintf(f, "  step: restore entry\n");
@@ -1143,7 +1143,7 @@ private:
 
     {
       FILE *f = NULL;
-      fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_d3d12_create.txt", "a");
+      fopen_s(&f, "D:\\git\\rendertst-nikki\\nikki\\marker_d3d12_create.txt", "a");
       if(f)
       {
         fprintf(f, "  step: real func = %p\n", (void *)createFunc);
@@ -1162,7 +1162,7 @@ private:
 
     {
       FILE *f = NULL;
-      fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_d3d12_create.txt", "a");
+      fopen_s(&f, "D:\\git\\rendertst-nikki\\nikki\\marker_d3d12_create.txt", "a");
       if(f)
       {
         fprintf(f, "  step: WRAPPED via Create_Internal hr=0x%08X (g_wrappedDevice=%p)\n",
@@ -1188,7 +1188,7 @@ private:
     // debug: record which experimental features the game requests
     {
       FILE *f = NULL;
-      fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_d3d12_expfeatures.txt", "a");
+      fopen_s(&f, "D:\\git\\rendertst-nikki\\nikki\\marker_d3d12_expfeatures.txt", "a");
       if(f)
       {
         fprintf(f, "pid %d EnableExperimentalFeatures: %u features:", (int)GetCurrentProcessId(),
@@ -1236,7 +1236,7 @@ private:
     // debug: record requested interfaces
     {
       FILE *f = NULL;
-      fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_d3d12_getdebug.txt", "a");
+      fopen_s(&f, "D:\\git\\rendertst-nikki\\nikki\\marker_d3d12_getdebug.txt", "a");
       if(f)
       {
         fprintf(f, "pid %d D3D12GetDebugInterface riid=%08x-%04x-%04x\n",
@@ -1272,7 +1272,7 @@ private:
   {
     {
       FILE *f = NULL;
-      fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_d3d12_getinterface.txt", "a");
+      fopen_s(&f, "D:\\git\\rendertst-nikki\\nikki\\marker_d3d12_getinterface.txt", "a");
       if(f)
       {
         fprintf(f, "D3D12GetInterface hook called in pid %d (rclsid=%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x)\n",
@@ -1287,7 +1287,7 @@ private:
     {
       {
         FILE *f = NULL;
-        fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_d3d12_getinterface.txt", "a");
+        fopen_s(&f, "D:\\git\\rendertst-nikki\\nikki\\marker_d3d12_getinterface.txt", "a");
         if(f)
         {
           fprintf(f, "  EARLY RETURN StateObjectFactory (riid=%08x-%04x-%04x)\n", riid.Data1,
@@ -1322,7 +1322,7 @@ private:
       if(rclsid.Data1 == 0x4a75bbc4)
       {
         FILE *f = NULL;
-        fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_d3d12_getinterface.txt", "a");
+        fopen_s(&f, "D:\\git\\rendertst-nikki\\nikki\\marker_d3d12_getinterface.txt", "a");
         if(f)
         {
           fprintf(f, "  DRED dummy returned for riid=%08x-%04x-%04x\n", riid.Data1, riid.Data2,
@@ -1335,7 +1335,7 @@ private:
 
       {
         FILE *f = NULL;
-        fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_d3d12_getinterface.txt", "a");
+        fopen_s(&f, "D:\\git\\rendertst-nikki\\nikki\\marker_d3d12_getinterface.txt", "a");
         if(f)
         {
           fprintf(f, "  NON-DEVICE riid=%08x-%04x-%04x -> E_NOINTERFACE (no real call)\n",
@@ -1350,7 +1350,7 @@ private:
     RestoreInlineHookBytes(s_getInterfaceFunc, s_getInterfaceOrig);
     {
       FILE *f = NULL;
-      fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_d3d12_getinterface.txt", "a");
+      fopen_s(&f, "D:\\git\\rendertst-nikki\\nikki\\marker_d3d12_getinterface.txt", "a");
       if(f)
       {
         fprintf(f, "  step: restored\n");
@@ -1368,7 +1368,7 @@ private:
     {
       {
         FILE *f = NULL;
-        fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_d3d12_getinterface.txt", "a");
+        fopen_s(&f, "D:\\git\\rendertst-nikki\\nikki\\marker_d3d12_getinterface.txt", "a");
         if(f)
         {
           fprintf(f, "  step: calling real %p\n", (void *)realGetInterface);
@@ -1378,7 +1378,7 @@ private:
       real = realGetInterface(rclsid, riid, (void **)&realUnk);
       {
         FILE *f = NULL;
-        fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_d3d12_getinterface.txt", "a");
+        fopen_s(&f, "D:\\git\\rendertst-nikki\\nikki\\marker_d3d12_getinterface.txt", "a");
         if(f)
         {
           fprintf(f, "  step: real returned 0x%08X unk=%p\n", (unsigned int)real, (void *)realUnk);
@@ -1392,7 +1392,7 @@ private:
     // debug: record requested interfaces
     {
       FILE *f = NULL;
-      fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_d3d12_getinterface.txt", "a");
+      fopen_s(&f, "D:\\git\\rendertst-nikki\\nikki\\marker_d3d12_getinterface.txt", "a");
       if(f)
       {
         fprintf(f, "pid %d t=%llu D3D12GetInterface rclsid=%08x-%04x-%04x riid=%08x-%04x-%04x real=0x%08X\n",
@@ -1427,7 +1427,7 @@ private:
           if(SUCCEEDED(qhr))
           {
             FILE *f = NULL;
-            fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_d3d12_create.txt", "a");
+            fopen_s(&f, "D:\\git\\rendertst-nikki\\nikki\\marker_d3d12_create.txt", "a");
             if(f)
             {
               fprintf(f, "D3D12GetInterface wrapped device %p -> %p (riid=%08x-%04x-%04x)\n",
@@ -1442,7 +1442,7 @@ private:
         else
         {
           FILE *f = NULL;
-          fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_d3d12_create.txt", "a");
+          fopen_s(&f, "D:\\git\\rendertst-nikki\\nikki\\marker_d3d12_create.txt", "a");
           if(f)
           {
             fprintf(f, "D3D12GetInterface wrap FAILED - returning real device %p\n",

@@ -71,7 +71,7 @@ static LONG WINAPI CrashDumpHandler(PEXCEPTION_POINTERS ep)
     }
 
     FILE *f = NULL;
-    fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\crash_log.txt", "a");
+    fopen_s(&f, "D:\\git\\rendertst-nikki\\nikki\\crash_log.txt", "a");
     if(f)
     {
       fprintf(f, "pid %d t=%llu code=0x%08X at %s+0x%llX (addr %p) info0=0x%llX\n",
@@ -105,7 +105,7 @@ static LONG WINAPI CrashDumpHandler(PEXCEPTION_POINTERS ep)
   }
 
   wchar_t path[MAX_PATH];
-  wsprintfW(path, L"D:\\git\\renderdoc-nikki\\nikki\\dumps\\crash_%d_%d.dmp",
+  wsprintfW(path, L"D:\\git\\rendertst-nikki\\nikki\\dumps\\crash_%d_%d.dmp",
             (int)GetCurrentProcessId(), (int)now);
 
   HMODULE dbghelp = LoadLibraryA("dbghelp.dll");
@@ -171,7 +171,7 @@ static BOOL add_hooks()
   free(noInit);
 
   // Bisection switch: skip ALL initialisation (no RenderTest::Inst() use at all)
-  if(GetFileAttributesA("D:\\git\\renderdoc-nikki\\nikki\\nikkiproxy_skip_init.txt") !=
+  if(GetFileAttributesA("D:\\git\\rendertst-nikki\\nikki\\nikkiproxy_skip_init.txt") !=
      INVALID_FILE_ATTRIBUTES)
   {
     RDCLOG("Initialisation skipped by file switch");
@@ -225,7 +225,7 @@ static BOOL add_hooks()
     bool isGame =
         (name && _wcsicmp(name + 1, L"X6Game-Win64-Shipping.exe") == 0);
     if(isGame &&
-       GetFileAttributesA("D:\\git\\renderdoc-nikki\\nikki\\nikkiproxy_skip_registerhooks.txt") !=
+       GetFileAttributesA("D:\\git\\rendertst-nikki\\nikki\\nikkiproxy_skip_registerhooks.txt") !=
            INVALID_FILE_ATTRIBUTES)
     {
       RDCLOG("Hook registration skipped by file switch (game process) - polling for delayed install");
@@ -261,16 +261,16 @@ static BOOL add_hooks()
 
                 // capture trigger via file markers. The trigger files are
                 // deleted after being consumed so they fire only once.
-                if(GetFileAttributesA("D:\\git\\renderdoc-nikki\\nikki\\nikkiproxy_capture_start.txt") !=
+                if(GetFileAttributesA("D:\\git\\rendertst-nikki\\nikki\\nikkiproxy_capture_start.txt") !=
                        INVALID_FILE_ATTRIBUTES &&
                    !capStarted)
                 {
                   capStarted = true;
-                  DeleteFileA("D:\\git\\renderdoc-nikki\\nikki\\nikkiproxy_capture_start.txt");
+                  DeleteFileA("D:\\git\\rendertst-nikki\\nikki\\nikkiproxy_capture_start.txt");
                   RDCLOG("File-triggered capture START");
                   {
                     FILE *f = NULL;
-                    fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_capture.txt", "a");
+                    fopen_s(&f, "D:\\git\\rendertst-nikki\\nikki\\marker_capture.txt", "a");
                     if(f)
                     {
                       fprintf(f, "pid %d capture START triggered\n", (int)GetCurrentProcessId());
@@ -282,7 +282,7 @@ static BOOL add_hooks()
                   RenderTest::Inst().StartFrameCapture(DeviceOwnedWindow(dev, NULL));
                   {
                     FILE *f = NULL;
-                    fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_capture.txt", "a");
+                    fopen_s(&f, "D:\\git\\rendertst-nikki\\nikki\\marker_capture.txt", "a");
                     if(f)
                     {
                       fprintf(f, "pid %d after Start: dev=%p isCapturing=%d\n",
@@ -292,16 +292,16 @@ static BOOL add_hooks()
                     }
                   }
                 }
-                if(GetFileAttributesA("D:\\git\\renderdoc-nikki\\nikki\\nikkiproxy_capture_end.txt") !=
+                if(GetFileAttributesA("D:\\git\\rendertst-nikki\\nikki\\nikkiproxy_capture_end.txt") !=
                        INVALID_FILE_ATTRIBUTES &&
                    capStarted)
                 {
                   capStarted = false;
-                  DeleteFileA("D:\\git\\renderdoc-nikki\\nikki\\nikkiproxy_capture_end.txt");
+                  DeleteFileA("D:\\git\\rendertst-nikki\\nikki\\nikkiproxy_capture_end.txt");
                   RDCLOG("File-triggered capture END");
                   {
                     FILE *f = NULL;
-                    fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_capture.txt", "a");
+                    fopen_s(&f, "D:\\git\\rendertst-nikki\\nikki\\marker_capture.txt", "a");
                     if(f)
                     {
                       fprintf(f, "pid %d capture END triggered\n", (int)GetCurrentProcessId());
@@ -314,7 +314,7 @@ static BOOL add_hooks()
                 }
 
                 if(!hooksDone &&
-                   (GetFileAttributesA("D:\\git\\renderdoc-nikki\\nikki\\nikkiproxy_install_hooks_now.txt") !=
+                   (GetFileAttributesA("D:\\git\\rendertst-nikki\\nikki\\nikkiproxy_install_hooks_now.txt") !=
                         INVALID_FILE_ATTRIBUTES ||
                     (GetTickCount() - start) > 2000))
                 {
@@ -347,7 +347,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
     // against device creation / hook registration timestamps in the target
     {
       FILE *f = NULL;
-      fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_dllmain.txt", "a");
+      fopen_s(&f, "D:\\git\\rendertst-nikki\\nikki\\marker_dllmain.txt", "a");
       if(f)
       {
         fprintf(f, "DllMain attach pid %d t=%llu\n", (int)GetCurrentProcessId(),

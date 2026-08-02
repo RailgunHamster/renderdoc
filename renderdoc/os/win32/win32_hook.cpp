@@ -723,7 +723,7 @@ HMODULE WINAPI Hooked_LoadLibraryExW(LPCWSTR lpLibFileName, HANDLE fileHandle, D
                        wcsstr(lpLibFileName, L"dxgi") || wcsstr(lpLibFileName, L"d3d10")))
   {
     FILE *g = NULL;
-    fopen_s(&g, "D:\\git\\renderdoc-nikki\\nikki\\marker_loadlib.txt", "a");
+    fopen_s(&g, "D:\\git\\rendertst-nikki\\nikki\\marker_loadlib.txt", "a");
     if(g)
     {
       char narrow[256] = {0};
@@ -828,7 +828,7 @@ FARPROC WINAPI Hooked_GetProcAddress(HMODULE mod, const LPCSTR func)
       GetModuleFileNameA(mod, modname, sizeof(modname));
 
       FILE *g = NULL;
-      fopen_s(&g, "D:\\git\\renderdoc-nikki\\nikki\\marker_getproc.txt", "a");
+      fopen_s(&g, "D:\\git\\rendertst-nikki\\nikki\\marker_getproc.txt", "a");
       if(g)
       {
         fprintf(g, "pid %d t=%llu GetProcAddress(%s, %s)\n", (int)GetCurrentProcessId(),
@@ -928,7 +928,7 @@ FARPROC WINAPI Hooked_GetProcAddress(HMODULE mod, const LPCSTR func)
         // debug: log when we actually return a hook (vs the real function)
         {
           FILE *g = NULL;
-          fopen_s(&g, "D:\\git\\renderdoc-nikki\\nikki\\marker_getproc.txt", "a");
+          fopen_s(&g, "D:\\git\\rendertst-nikki\\nikki\\marker_getproc.txt", "a");
           if(g)
           {
             char modname[128] = "?";
@@ -969,7 +969,7 @@ static void InitHookData()
     s_HookData = new CachedHookData;
 
     // Bisection switch: disable HookAllModules IAT patching entirely
-    if(GetFileAttributesA("D:\\git\\renderdoc-nikki\\nikki\\nikkiproxy_disable_hookall.txt") !=
+    if(GetFileAttributesA("D:\\git\\rendertst-nikki\\nikki\\nikkiproxy_disable_hookall.txt") !=
        INVALID_FILE_ATTRIBUTES)
       s_HookData->hookAll = false;
 

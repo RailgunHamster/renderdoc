@@ -242,7 +242,7 @@ WrappedIDXGISwapChain4::WrappedIDXGISwapChain4(IDXGISwapChain *real, HWND w, ID3
 
     {
       FILE *f = NULL;
-      fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_capture.txt", "a");
+      fopen_s(&f, "D:\\git\\rendertst-nikki\\nikki\\marker_capture.txt", "a");
       if(f)
       {
         fprintf(f, "pid %d swapchain AddFrameCapturer dev=%p hwnd=%p\n",
@@ -1245,7 +1245,7 @@ HRESULT WrappedIDXGIFactory::CreateSwapChain(IUnknown *pDevice, DXGI_SWAP_CHAIN_
 {
   {
     FILE *f = NULL;
-    fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_swapchain.txt", "a");
+    fopen_s(&f, "D:\\git\\rendertst-nikki\\nikki\\marker_swapchain.txt", "a");
     if(f)
     {
       fprintf(f, "pid %d CreateSwapChain called, device=%p\n", (int)GetCurrentProcessId(),
@@ -1258,7 +1258,7 @@ HRESULT WrappedIDXGIFactory::CreateSwapChain(IUnknown *pDevice, DXGI_SWAP_CHAIN_
 
   {
     FILE *f = NULL;
-    fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_swapchain.txt", "a");
+    fopen_s(&f, "D:\\git\\rendertst-nikki\\nikki\\marker_swapchain.txt", "a");
     if(f)
     {
       fprintf(f, "CreateSwapChain: pDevice=%p wrapDevice=%p\n", (void *)pDevice,
@@ -1306,7 +1306,7 @@ HRESULT WrappedIDXGIFactory::CreateSwapChainForHwnd(
 {
   {
     FILE *f = NULL;
-    fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_swapchain.txt", "a");
+    fopen_s(&f, "D:\\git\\rendertst-nikki\\nikki\\marker_swapchain.txt", "a");
     if(f)
     {
       fprintf(f, "pid %d CreateSwapChainForHwnd called, device=%p\n", (int)GetCurrentProcessId(),

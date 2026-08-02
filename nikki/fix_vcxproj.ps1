@@ -1,6 +1,6 @@
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 $count = 0
-Get-ChildItem 'D:\git\renderdoc-nikki' -Recurse -Include '*.vcxproj','*.filters' | Where-Object { $_.FullName -notmatch '\\3rdparty\\' } | ForEach-Object {
+Get-ChildItem 'D:\git\rendertst-nikki' -Recurse -Include '*.vcxproj','*.filters' | Where-Object { $_.FullName -notmatch '\\3rdparty\\' } | ForEach-Object {
   $c = [System.IO.File]::ReadAllText($_.FullName)
   $n = $c
   # directory paths back to renderdoc\

@@ -23,6 +23,6 @@ $ht = $rect.Bottom - $rect.Top
 $bmp = New-Object System.Drawing.Bitmap $w, $ht
 $g = [System.Drawing.Graphics]::FromImage($bmp)
 $g.CopyFromScreen($rect.Left, $rect.Top, 0, 0, $bmp.Size)
-$bmp.Save("D:\git\renderdoc-nikki\nikki\xstarter_shot.png", [System.Drawing.Imaging.ImageFormat]::Png)
+$bmp.Save("D:\git\rendertst-nikki\nikki\xstarter_shot.png", [System.Drawing.Imaging.ImageFormat]::Png)
 $g.Dispose(); $bmp.Dispose()
 "saved xstarter_shot.png"

@@ -47,13 +47,13 @@ xstarter（launcher UI，用户双击）
 
 ## 3. 环境与目录
 
-- 仓库：`D:\git\renderdoc-nikki`（RenderDoc v1.45 魔改，git tag `working`）
+- 仓库：`D:\git\rendertst-nikki`（RenderDoc v1.45 魔改，git tag `working`）
 - 游戏：`C:\Users\Administrator\game\InfinityNikki Launcher\InfinityNikki\`
   - `VERSION.dll`（代理）、`version_real.dll`（系统 version.dll 副本）、`rendertest.dll`（魔改 renderdoc.dll）
   - 游戏本体 `X6Game\Binaries\Win64\X6Game-Win64-Shipping.exe`（静态导入 d3d12.dll，不导入 dxgi）
 - 构建工具：VS 2022/2026 MSBuild（`C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\amd64\MSBuild.exe`）
-- 工作目录：`D:\git\renderdoc-nikki\nikki\`（marker、开关、脚本、捕获文件）
-- 路径消毒 junction：`D:\git\rendertst-nikki` → `D:\git\renderdoc-nikki`（DLL 内 "renderdoc" 字符串被消毒成 "rendertst"，marker 路径经 junction 写回真实目录）
+- 工作目录：`D:\git\rendertst-nikki\nikki\`（marker、开关、脚本、捕获文件）
+- 路径说明：源码内 marker/开关路径硬编码为 `D:\git\rendertst-nikki\nikki\`（真目录）；消毒只替换品牌字符串（renderdoc→rendertst），不碰路径，无需 junction
 
 ---
 
@@ -62,12 +62,12 @@ xstarter（launcher UI，用户双击）
 ```powershell
 # 必须前台运行（Start-Process 后台方式会挂起不动）；/nodeReuse:false 避免 MSBuild server 卡死
 & "C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\amd64\MSBuild.exe" `
-  "D:\git\renderdoc-nikki\renderdoc\renderdoc.vcxproj" `
-  /p:SolutionDir=D:\git\renderdoc-nikki\ /p:Configuration=Release /p:Platform=x64 `
+  "D:\git\rendertst-nikki\renderdoc\renderdoc.vcxproj" `
+  /p:SolutionDir=D:\git\rendertst-nikki\ /p:Configuration=Release /p:Platform=x64 `
   /m:8 /nodeReuse:false /v:minimal /nologo
 ```
 
-- 产物：`D:\git\renderdoc-nikki\x64\Release\rendertest.dll`（约 25.8MB）
+- 产物：`D:\git\rendertst-nikki\x64\Release\rendertest.dll`（约 25.8MB）
 - 注意：构建中途被杀会损坏 IPDB 导致下次链接 LNK1257；清理 `x64\Release\*.ipdb/*.iobj` 可恢复（但 LTCG 已关，不再产生）
 
 ## 5. 消毒（必须）
@@ -84,10 +84,10 @@ DLL 内所有 "renderdoc/RenderDoc/RENDERDOC" 变体（ASCII + UTF-16）等长�
 ```powershell
 # 先关闭所有游戏进程（X6Game/InfinityNikki/xstarter），DLL 被加载时会锁文件
 Get-Process | Where-Object { $_.Name -match "X6Game|Nikki|xstarter" } | Stop-Process -Force
-Copy-Item "D:\git\renderdoc-nikki\nikki\test\rendertest.dll" `
+Copy-Item "D:\git\rendertst-nikki\nikki\test\rendertest.dll" `
   "C:\Users\Administrator\game\InfinityNikki Launcher\InfinityNikki\rendertest.dll" -Force
 # 创建必需开关
-New-Item -ItemType File "D:\git\renderdoc-nikki\nikki\nikkiproxy_skip_registerhooks.txt" -Force
+New-Item -ItemType File "D:\git\rendertst-nikki\nikki\nikkiproxy_skip_registerhooks.txt" -Force
 ```
 
 开关文件列表见进度文档阶段8（nikki\进度文档.md）。
@@ -102,7 +102,7 @@ Start-Process "C:\Users\Administrator\game\InfinityNikki Launcher\1.3.1\xstarter
 # 等待窗口加载（40-60 秒）
 
 # 2. 点击"开始游戏"按钮（截图模板匹配，窗口 2880x1620 @ (482,216)，按钮约 (2859,1658) 450x126）
-cd D:\git\renderdoc-nikki\nikki
+cd D:\git\rendertst-nikki\nikki
 uv run --with pyautogui --with pygetwindow python find_click_start.py
 # 输出 "FOUND ... clicked" 即成功；"NOT FOUND" 说明窗口未加载完，重试
 

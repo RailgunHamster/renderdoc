@@ -50,7 +50,7 @@ int main(int argc, char **argv)
   if(!local)
   {
     printf("rendertest.dll not loaded locally, loading...\n");
-    local = LoadLibraryA("D:\\git\\renderdoc-nikki\\nikki\\rendertest.dll");
+    local = LoadLibraryA("D:\\git\\rendertst-nikki\\nikki\\rendertest.dll");
   }
   uintptr_t getApiLocal = (uintptr_t)GetProcAddress(local, "RENDERTEST_GetAPI");
   if(!getApiLocal)

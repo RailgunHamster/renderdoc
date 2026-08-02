@@ -257,7 +257,7 @@ public:
     // breaks this game's D3D12 device initialisation (wrapped adapter is passed
     // to the real D3D12CreateDevice -> failure -> the game retries loading
     // d3d12 every ~20s forever).
-    if(GetFileAttributesA("D:\\git\\renderdoc-nikki\\nikki\\nikkiproxy_disable_dxgi_hooks.txt") !=
+    if(GetFileAttributesA("D:\\git\\rendertst-nikki\\nikki\\nikkiproxy_disable_dxgi_hooks.txt") !=
        INVALID_FILE_ATTRIBUTES)
     {
       RDCLOG("DXGI hooks disabled by file switch");
@@ -343,7 +343,7 @@ private:
     // for many seconds at a time. Disable via file switch
     // (nikki\nikkiproxy_disable_inline.txt) or rebuild without the call.
     bool disableInline =
-        (GetFileAttributesA("D:\\git\\renderdoc-nikki\\nikki\\nikkiproxy_disable_inline.txt") !=
+        (GetFileAttributesA("D:\\git\\rendertst-nikki\\nikki\\nikkiproxy_disable_inline.txt") !=
          INVALID_FILE_ATTRIBUTES);
     extern void InstallD3D12InlineHooks();
     if(!disableInline && GetModuleHandleA("d3d12.dll"))
@@ -351,7 +351,7 @@ private:
 
     {
       FILE *f = NULL;
-      fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_dxgi_factory.txt", "a");
+      fopen_s(&f, "D:\\git\\rendertst-nikki\\nikki\\marker_dxgi_factory.txt", "a");
       if(f)
       {
         fprintf(f, "CreateDXGIFactory hook called in pid %d\n", (int)GetCurrentProcessId());
@@ -500,7 +500,7 @@ extern "C" void InstallDXGIFactoryInlineHooks()
   }
   {
     FILE *f = NULL;
-    fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_inlinehook.txt", "a");
+    fopen_s(&f, "D:\\git\\rendertst-nikki\\nikki\\marker_inlinehook.txt", "a");
     if(f)
     {
       fprintf(f, "dxgi inline hooks installed in pid %d (cf=%d cf1=%d cf2=%d)\n",

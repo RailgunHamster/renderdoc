@@ -9,7 +9,7 @@ $pairs = @(
   @('$(ProjectDir)rendertest\', '$(ProjectDir)renderdoc\')
 )
 $count = 0
-Get-ChildItem 'D:\git\renderdoc-nikki' -Recurse -Include '*.vcxproj','*.filters','*.sln' | Where-Object { $_.FullName -notmatch '\\3rdparty\\' } | ForEach-Object {
+Get-ChildItem 'D:\git\rendertst-nikki' -Recurse -Include '*.vcxproj','*.filters','*.sln' | Where-Object { $_.FullName -notmatch '\\3rdparty\\' } | ForEach-Object {
   $c = [System.IO.File]::ReadAllText($_.FullName)
   $n = $c
   foreach ($p in $pairs) { $n = $n.Replace($p[0], $p[1]) }

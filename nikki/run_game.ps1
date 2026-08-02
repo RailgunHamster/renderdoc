@@ -17,4 +17,4 @@ $h = $rect.Bottom - $rect.Top
 $bx = [int]($rect.Left + $w * 0.8264)
 $by = [int]($rect.Top + $h * 0.8914)
 "window ${w}x${h} at ($($rect.Left),$($rect.Top)), clicking start-game at ($bx,$by) t=$(Get-Date -Format HH:mm:ss)"
-& powershell -NoProfile -ExecutionPolicy Bypass -File "D:\git\renderdoc-nikki\nikki\window_click.ps1" -Process "xstarter" -X $($bx - $rect.Left) -Y $($by - $rect.Top) 2>&1 | Select-Object -Last 2
+& powershell -NoProfile -ExecutionPolicy Bypass -File "D:\git\rendertst-nikki\nikki\window_click.ps1" -Process "xstarter" -X $($bx - $rect.Left) -Y $($by - $rect.Top) 2>&1 | Select-Object -Last 2

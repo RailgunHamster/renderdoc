@@ -10,7 +10,7 @@ $pairs = @(
   @('RENDERTEST_CaptureOptions', 'renderdoc_capture_options')
 )
 $count = 0
-Get-ChildItem 'D:\git\renderdoc-nikki\renderdoc','D:\git\renderdoc-nikki\renderdoccmd' -Recurse -Include '*.cpp','*.h','*.c','*.rc','*.vcxproj','*.inl','*.filters' | ForEach-Object {
+Get-ChildItem 'D:\git\rendertst-nikki\renderdoc','D:\git\rendertst-nikki\renderdoccmd' -Recurse -Include '*.cpp','*.h','*.c','*.rc','*.vcxproj','*.inl','*.filters' | ForEach-Object {
   $c = [System.IO.File]::ReadAllText($_.FullName)
   $n = $c
   foreach ($p in $pairs) { $n = $n.Replace($p[0], $p[1]) }

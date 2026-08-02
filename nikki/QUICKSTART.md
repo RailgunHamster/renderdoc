@@ -1,6 +1,6 @@
 # 新电脑操作文档：拿到项目 → 截到帧
 
-> 假设：一台干净的 Windows 机器，已安装《无限暖暖》PC 版（能正常玩），拿到本项目（D:\git\renderdoc-nikki，含 nikki\ 目录）。
+> 假设：一台干净的 Windows 机器，已安装《无限暖暖》PC 版（能正常玩），拿到本项目（D:\git\rendertst-nikki，含 nikki\ 目录）。
 > 目标：从零到按 F10 截帧。约 30 分钟。
 
 ---
@@ -29,23 +29,22 @@ C:\Users\Administrator\game\InfinityNikki Launcher\
 ```powershell
 # 前台运行（后台方式会挂起）；/nodeReuse:false 必须
 & "C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\amd64\MSBuild.exe" `
-  "D:\git\renderdoc-nikki\renderdoc\renderdoc.vcxproj" `
-  /p:SolutionDir=D:\git\renderdoc-nikki\ /p:Configuration=Release /p:Platform=x64 `
+  "D:\git\rendertst-nikki\renderdoc\renderdoc.vcxproj" `
+  /p:SolutionDir=D:\git\rendertst-nikki\ /p:Configuration=Release /p:Platform=x64 `
   /m:8 /nodeReuse:false /v:minimal /nologo
 ```
-- 产物：`D:\git\renderdoc-nikki\x64\Release\rendertest.dll`（约 25.8MB，看 LastWriteTime 确认是新的）
+- 产物：`D:\git\rendertst-nikki\x64\Release\rendertest.dll`（约 25.8MB，看 LastWriteTime 确认是新的）
 - 报错 LNK1257（代码生成失败）：清理 `x64\Release\*.ipdb`、`*.iobj` 后重跑；还不行就删 `x64\Release\rendertest.dll` 再跑
 
 ## 第 2 步：编译 VERSION.dll 代理（约 1 分钟）
 
 ```powershell
-# 用 VS 开发者命令行（vcvars64）或直接指定 cl 路径：
-& "C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.5x.xxxxx\bin\Hostx64\x64\cl.exe" `
-  /nologo /LD /O2 /DUNICODE /D_UNICODE `
-  "D:\git\renderdoc-nikki\nikki\version_proxy.c" `
-  /Fe:"D:\git\renderdoc-nikki\nikki\VERSION.dll" /link /DEF:"D:\git\renderdoc-nikki\nikki\VERSION.def"
+# 必须先在 VS 开发者环境（vcvars64）下跑：直接调 cl.exe 会报 C1034（windows.h 不在路径集）
+# 且 cmd 里绝对路径引号会被转义破坏（LNK1104 打不开 .def）→ 用相对路径 + workdir
+cd D:\git\rendertst-nikki\nikki
+cmd /c "call ""C:\Program Files\Microsoft Visual Studio\18\Community\VC\Auxiliary\Build\vcvars64.bat"" >nul 2>&1 && cl /nologo /LD /O2 /DUNICODE /D_UNICODE version_proxy.c /Fe:VERSION.dll /link /DEF:version_proxy.def"
 ```
-- `VERSION.def` 导出：GetFileVersionInfoA/W、VerQueryValueA/W 等 20 个符号（见 nikki\ 目录现有 .def，若缺失从 system version.dll 导出表生成）
+- `version_proxy.def` 导出：GetFileVersionInfoA/W、VerQueryValueA/W 等 20 个符号（见 nikki\ 目录现有 .def，若缺失从 system version.dll 导出表生成）
 - `version_real.dll`：复制 `C:\Windows\System32\version.dll` 改名为 `version_real.dll` 即可
 
 ## 第 3 步：消毒（必须！约 1 分钟）
@@ -55,10 +54,11 @@ DLL 里的 "renderdoc/RenderDoc/RENDERDOC" 字符串会被 ACE 反作弊按特�
 ```powershell
 # 用 nikki\sanitize_dll.ps1（或手动字节替换），输出 nikki\test\rendertest.dll
 # 验证：替换计数应约 600 处
-# 注意：marker 路径 D:\git\renderdoc-nikki\nikki\ 也会被替换成 D:\git\rendertst-nikki\nikki\
-#       → 必须建 junction（否则游戏里写 marker 失败）：
-New-Item -ItemType Junction "D:\git\rendertst-nikki" "D:\git\renderdoc-nikki"
+& "D:\git\rendertst-nikki\nikki\sanitize_dll.ps1"
 ```
+
+> 说明：源码里 marker/开关路径已硬编码为 `D:\git\rendertst-nikki\nikki\`（真目录），消毒只替换品牌字符串（"rendertst" 不是替换目标），路径不会被改动，**无需 junction**。
+> 若项目路径不同：把源码里所有 `D:\git\rendertst-nikki` 等长替换为新路径（搜 "rendertst-nikki"，注意等长才能保住二进制偏移），然后重新构建 + 消毒。
 
 ## 第 4 步：部署（约 1 分钟）
 
@@ -68,15 +68,15 @@ Get-Process | Where-Object { $_.Name -match "X6Game|Nikki|xstarter" } | Stop-Pro
 
 # 2. 复制三个文件到游戏根目录
 $g = "C:\Users\Administrator\game\InfinityNikki Launcher\InfinityNikki"
-Copy-Item "D:\git\renderdoc-nikki\nikki\test\rendertest.dll" "$g\rendertest.dll" -Force
-Copy-Item "D:\git\renderdoc-nikki\nikki\VERSION.dll"          "$g\VERSION.dll" -Force
-Copy-Item "D:\git\renderdoc-nikki\nikki\version_real.dll"     "$g\version_real.dll" -Force
+Copy-Item "D:\git\rendertst-nikki\nikki\test\rendertest.dll" "$g\rendertest.dll" -Force
+Copy-Item "D:\git\rendertst-nikki\nikki\VERSION.dll"          "$g\VERSION.dll" -Force
+Copy-Item "D:\git\rendertst-nikki\nikki\version_real.dll"     "$g\version_real.dll" -Force
 
 # 3. 创建必需开关（存在=生效）
-New-Item -ItemType File "D:\git\renderdoc-nikki\nikki\nikkiproxy_skip_registerhooks.txt" -Force
+New-Item -ItemType File "D:\git\rendertst-nikki\nikki\nikkiproxy_skip_registerhooks.txt" -Force
 ```
 
-**开关文件清单**（都在 `D:\git\renderdoc-nikki\nikki\`）：
+**开关文件清单**（都在 `D:\git\rendertst-nikki\nikki\`）：
 | 文件 | 正常部署 |
 |---|---|
 | nikkiproxy_skip_registerhooks.txt | **必需**（防 ACE 冻结） |
@@ -84,8 +84,7 @@ New-Item -ItemType File "D:\git\renderdoc-nikki\nikki\nikkiproxy_skip_registerho
 | nikkiproxy_disable_hookall.txt | 不需要（默认关 IAT 二分管） |
 | nikkiproxy_capture_start/end.txt | 触发捕获用（用完自动删除） |
 
-> 注意：marker 写的是消毒后路径（D:\git\rendertst-nikki\nikki\），经 junction 落到真实目录。
-> 新机器上如果项目不在 D:\git\renderdoc-nikki，需要改代码里所有硬编码路径（搜 "renderdoc-nikki"）并重建 junction。
+> 注意：marker/开关路径就是真实路径（源码硬编码 `D:\git\rendertst-nikki\nikki\`），无需 junction。
 
 ## 第 5 步：启动游戏并验证注入（约 5 分钟）
 
@@ -95,7 +94,7 @@ Start-Process "C:\Users\Administrator\game\InfinityNikki Launcher\1.3.1\xstarter
 # 等 40-60 秒（窗口加载）
 
 # 2. 自动点击"开始游戏"（截图模板匹配；窗口 2880x1620，按钮约 (2859,1658)）
-cd D:\git\renderdoc-nikki\nikki
+cd D:\git\rendertst-nikki\nikki
 uv run --with pyautogui --with pygetwindow python find_click_start.py
 # 输出 "FOUND at scale=1.0 ... clicked" = 成功；"NOT FOUND" = 窗口没加载完，等 30 秒重试
 
@@ -113,13 +112,13 @@ Get-Process | Where-Object { $_.Name -match "X6Game" } | Select-Object Id,Respon
 ```powershell
 # 方式 A：游戏中直接按 F10（开始/结束各按一次，边沿触发）
 # 方式 B：文件触发（游戏无响应/黑屏时用）
-New-Item -ItemType File "D:\git\renderdoc-nikki\nikki\nikkiproxy_capture_start.txt"   # 开始
+New-Item -ItemType File "D:\git\rendertst-nikki\nikki\nikkiproxy_capture_start.txt"   # 开始
 Start-Sleep 5
-New-Item -ItemType File "D:\git\renderdoc-nikki\nikki\nikkiproxy_capture_end.txt"     # 结束
+New-Item -ItemType File "D:\git\rendertst-nikki\nikki\nikkiproxy_capture_end.txt"     # 结束
 # 触发文件会被自动删除（消费一次）
 
 # 结果：
-Get-ChildItem "D:\git\renderdoc-nikki\nikki\captures\"
+Get-ChildItem "D:\git\rendertst-nikki\nikki\captures\"
 # nikki_capture*.rdc（几百 MB 正常）——用 RenderDoc qrenderdoc 打开回放验证
 ```
 

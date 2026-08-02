@@ -7,7 +7,7 @@ public class FG {
     [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint p);
 }
 "@
-& powershell -NoProfile -ExecutionPolicy Bypass -File "D:\git\renderdoc-nikki\nikki\window_click.ps1" -Process "xstarter" -Activate 2>&1 | Select-Object -Last 2
+& powershell -NoProfile -ExecutionPolicy Bypass -File "D:\git\rendertst-nikki\nikki\window_click.ps1" -Process "xstarter" -Activate 2>&1 | Select-Object -Last 2
 Start-Sleep -Milliseconds 800
 $fg = [FG]::GetForegroundWindow()
 $fgPid = 0

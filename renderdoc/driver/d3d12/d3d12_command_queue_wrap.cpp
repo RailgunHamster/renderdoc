@@ -1503,7 +1503,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12CommandQueue::Present(
 
     {
       FILE *f = NULL;
-      fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_capture.txt", "a");
+      fopen_s(&f, "D:\\git\\rendertst-nikki\\nikki\\marker_capture.txt", "a");
       if(f)
       {
         fprintf(f, "pid %d AddFrameCapturer dev=%p hwnd=%p\n", (int)GetCurrentProcessId(),

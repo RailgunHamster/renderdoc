@@ -1,5 +1,5 @@
-$src = 'D:\git\renderdoc-nikki\x64\Release\rendertest.dll'
-$dst = 'D:\git\renderdoc-nikki\nikki\test\rendertest.dll'
+$src = 'D:\git\rendertst-nikki\x64\Release\rendertest.dll'
+$dst = 'D:\git\rendertst-nikki\nikki\test\rendertest.dll'
 $bytes = [System.IO.File]::ReadAllBytes($src)
 
 # ASCII/UTF-8 variants: replace "renderdoc" (9) -> "rendertst" (9), "RenderDoc" -> "RenderTst", "RENDERDOC" -> "RENDERTST"

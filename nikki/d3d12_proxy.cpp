@@ -9,7 +9,7 @@
 
 #pragma comment(lib, "kernel32.lib")
 
-#define LOG_FILE L"D:\\git\\renderdoc-nikki\\nikki\\d3d12_proxy.log"
+#define LOG_FILE L"D:\\git\\rendertst-nikki\\nikki\\d3d12_proxy.log"
 
 static void Log(const char *fmt, ...)
 {
@@ -267,10 +267,10 @@ extern "C" HRESULT WINAPI D3D12CreateDevice(
 
   Log("D3D12CreateDevice: hr=0x%08X dev=%p\n", hr, ppDevice ? *ppDevice : NULL);
 
-  // diagnostic switch: if D:\git\renderdoc-nikki\nikki\nikkiproxy_nowrap.txt exists, skip wrapping
+  // diagnostic switch: if D:\git\rendertst-nikki\nikki\nikkiproxy_nowrap.txt exists, skip wrapping
   // (returns the real device directly) so we can bisect whether the wrapped
   // device path is what crashes the game.
-  bool skipWrap = (GetFileAttributesA("D:\\git\\renderdoc-nikki\\nikki\\nikkiproxy_nowrap.txt") != INVALID_FILE_ATTRIBUTES);
+  bool skipWrap = (GetFileAttributesA("D:\\git\\rendertst-nikki\\nikki\\nikkiproxy_nowrap.txt") != INVALID_FILE_ATTRIBUTES);
 
   if(SUCCEEDED(hr) && ppDevice && *ppDevice && !skipWrap)
   {

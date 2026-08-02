@@ -40,7 +40,7 @@
 inline void Heartbeat(const char *tag)
 {
   FILE *f = NULL;
-  fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\heartbeat.txt", "w");
+  fopen_s(&f, "D:\\git\\rendertst-nikki\\nikki\\heartbeat.txt", "w");
   if(f)
   {
     fprintf(f, "t=%llu pid=%d %s\n", (unsigned long long)GetTickCount64(),

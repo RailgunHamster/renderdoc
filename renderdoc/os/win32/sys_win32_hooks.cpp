@@ -94,7 +94,7 @@ public:
     // If IAT patching is disabled (nikkiproxy_disable_hookall.txt), the
     // HookedFunction CreateProcess hooks above never get patched in, so
     // children would never be injected. Install direct inline hooks instead.
-    if(GetFileAttributesA("D:\\git\\renderdoc-nikki\\nikki\\nikkiproxy_disable_hookall.txt") !=
+    if(GetFileAttributesA("D:\\git\\rendertst-nikki\\nikki\\nikkiproxy_disable_hookall.txt") !=
        INVALID_FILE_ATTRIBUTES)
     {
       InstallCreateProcessInlineHooks();
@@ -409,7 +409,7 @@ private:
       // debug: record the child process command line so we can reproduce the launch
       {
         FILE *g = NULL;
-        fopen_s(&g, "D:\\git\\renderdoc-nikki\\nikki\\marker_launch.txt", "a");
+        fopen_s(&g, "D:\\git\\rendertst-nikki\\nikki\\marker_launch.txt", "a");
         if(g)
         {
           fprintf(g, "pid %d CreateProcess inject child pid=%u\n", (int)GetCurrentProcessId(),
@@ -537,7 +537,7 @@ private:
     // debug: record every CreateProcessW command line so we can capture the launcher token
     {
       FILE *g = NULL;
-      fopen_s(&g, "D:\\git\\renderdoc-nikki\\nikki\\marker_launch.txt", "a");
+      fopen_s(&g, "D:\\git\\rendertst-nikki\\nikki\\marker_launch.txt", "a");
       if(g)
       {
         fprintf(g, "pid %d CreateProcessW app=%ls cmd=%ls\n", (int)GetCurrentProcessId(),

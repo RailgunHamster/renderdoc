@@ -47,7 +47,7 @@ public:
     // debug marker: confirm hook registration in the target process
     {
       FILE *f = NULL;
-      fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_d3d11_register.txt", "a");
+      fopen_s(&f, "D:\\git\\rendertst-nikki\\nikki\\marker_d3d11_register.txt", "a");
       if(f)
       {
         fprintf(f, "d3d11 hooks registered in pid %d t=%llu\n", (int)GetCurrentProcessId(), (unsigned long long)GetTickCount64());
@@ -65,7 +65,7 @@ public:
     }
 
     // Bisection switch: disable all d3d11 hooks (file marker)
-    if(GetFileAttributesA("D:\\git\\renderdoc-nikki\\nikki\\nikkiproxy_disable_d3d11_hooks.txt") !=
+    if(GetFileAttributesA("D:\\git\\rendertst-nikki\\nikki\\nikkiproxy_disable_d3d11_hooks.txt") !=
        INVALID_FILE_ATTRIBUTES)
     {
       RDCLOG("D3D11 hooks disabled by file switch");
@@ -265,7 +265,7 @@ private:
   {
     {
       FILE *f = NULL;
-      fopen_s(&f, "D:\\git\\renderdoc-nikki\\nikki\\marker_d3d11_create.txt", "a");
+      fopen_s(&f, "D:\\git\\rendertst-nikki\\nikki\\marker_d3d11_create.txt", "a");
       if(f)
       {
         fprintf(f, "D3D11CreateDevice hook called in pid %d\n", (int)GetCurrentProcessId());

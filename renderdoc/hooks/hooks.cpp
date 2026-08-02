@@ -50,7 +50,7 @@ void LibraryHooks::RegisterHooks()
   // what interferes with the game's D3D12 device initialisation.
   bool disableDriver =
       (GetFileAttributesA(
-           "D:\\git\\renderdoc-nikki\\nikki\\nikkiproxy_disable_driver_hooks.txt") !=
+           "D:\\git\\rendertst-nikki\\nikki\\nikkiproxy_disable_driver_hooks.txt") !=
        INVALID_FILE_ATTRIBUTES);
 
   if(!disableDriver)
