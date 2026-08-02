@@ -259,12 +259,14 @@ static BOOL add_hooks()
               {
                 InstallDXGIFactoryInlineHooks();
 
-                // capture trigger via file markers
+                // capture trigger via file markers. The trigger files are
+                // deleted after being consumed so they fire only once.
                 if(GetFileAttributesA("D:\\git\\renderdoc-nikki\\nikki\\nikkiproxy_capture_start.txt") !=
                        INVALID_FILE_ATTRIBUTES &&
                    !capStarted)
                 {
                   capStarted = true;
+                  DeleteFileA("D:\\git\\renderdoc-nikki\\nikki\\nikkiproxy_capture_start.txt");
                   RDCLOG("File-triggered capture START");
                   {
                     FILE *f = NULL;
@@ -295,6 +297,7 @@ static BOOL add_hooks()
                    capStarted)
                 {
                   capStarted = false;
+                  DeleteFileA("D:\\git\\renderdoc-nikki\\nikki\\nikkiproxy_capture_end.txt");
                   RDCLOG("File-triggered capture END");
                   {
                     FILE *f = NULL;

@@ -613,8 +613,9 @@ RenderTest::RenderTest()
   m_FocusKeys.push_back(eRENDERTEST_Key_F11);
 
   m_CaptureKeys.clear();
-  m_CaptureKeys.push_back(eRENDERTEST_Key_F12);
-  m_CaptureKeys.push_back(eRENDERTEST_Key_PrtScrn);
+  // F10 is the capture key: F12 is bound to a game feature in Infinity Nikki,
+  // and PrintScreen may be too. The game never uses F10.
+  m_CaptureKeys.push_back(eRENDERTEST_Key_F10);
 
   m_ExHandler = NULL;
 
