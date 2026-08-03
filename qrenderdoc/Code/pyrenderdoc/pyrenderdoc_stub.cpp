@@ -72,7 +72,7 @@ extern "C" void ProcessDecRefQueue()
 {
 }
 
-extern "C" RENDERDOC_EXPORT_API int _rd_python_minor_version()
+extern "C" RENDERTEST_EXPORT_API int _rd_python_minor_version()
 {
   return PY_MINOR_VERSION;
 }

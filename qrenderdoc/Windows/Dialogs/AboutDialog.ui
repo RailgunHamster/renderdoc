@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>About RenderDoc</string>
+   <string>About RenderTest</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <property name="sizeConstraint">
@@ -147,7 +147,7 @@
          </font>
         </property>
         <property name="text">
-         <string>RenderDoc</string>
+         <string>RenderTest</string>
         </property>
        </widget>
       </item>
@@ -239,7 +239,7 @@
        <property name="text">
         <string>&lt;a href='mailto:baldurk@baldurk.org'&gt;baldurk@baldurk.org&lt;/a&gt;
 &amp;bull;
-&lt;a href='https://renderdoc.org/'&gt;https://renderdoc.org&lt;/a&gt;</string>
+&lt;a href='https://rendertest.org/'&gt;https://rendertest.org&lt;/a&gt;</string>
        </property>
        <property name="textFormat">
         <enum>Qt::RichText</enum>

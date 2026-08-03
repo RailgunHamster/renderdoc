@@ -51,7 +51,7 @@ PyTypeObject **SbkPySide2_QtWidgetsTypes = NULL;
 // for non-windows, this message is displayed at CMake time.
 #ifdef _MSC_VER
 #pragma message( \
-    "Building without PySide2 - Qt will not be accessible in python scripting. See https://github.com/baldurk/renderdoc/wiki/PySide2")
+    "Building without PySide2 - Qt will not be accessible in python scripting. See https://github.com/baldurk/rendertest/wiki/PySide2")
 #endif
 
 #endif
@@ -77,12 +77,12 @@ PyTypeObject **SbkPySide2_QtWidgetsTypes = NULL;
 bool CheckCoreInterface(rdcstr &log);
 bool CheckQtInterface(rdcstr &log);
 
-// defined in SWIG-generated renderdoc_python.cpp
-extern "C" PyObject *PyInit_renderdoc(void);
+// defined in SWIG-generated rendertest_python.cpp
+extern "C" PyObject *PyInit_rendertest(void);
 extern "C" PyObject *PassObjectToPython(const char *type, void *obj);
 extern "C" PyObject *PassNewObjectToPython(const char *type, void *obj);
-// this one is in qrenderdoc_python.cpp
-extern "C" PyObject *PyInit_qrenderdoc(void);
+// this one is in qrendertest_python.cpp
+extern "C" PyObject *PyInit_qrendertest(void);
 extern "C" PyObject *WrapBareQWidget(QWidget *);
 extern "C" QWidget *UnwrapBareQWidget(PyObject *);
 
@@ -110,7 +110,7 @@ static inline QString ToQStr(PyObject *value)
   return QString();
 }
 
-static wchar_t program_name[] = L"qrenderdoc";
+static wchar_t program_name[] = L"qrendertest";
 static wchar_t python_home[1024] = {0};
 
 struct OutputRedirector
@@ -232,8 +232,8 @@ void PythonContext::GlobalInit()
   // for the exception signal
   qRegisterMetaType<QList<QString>>("QList<QString>");
 
-  PyImport_AppendInittab("renderdoc", &PyInit_renderdoc);
-  PyImport_AppendInittab("qrenderdoc", &PyInit_qrenderdoc);
+  PyImport_AppendInittab("rendertest", &PyInit_rendertest);
+  PyImport_AppendInittab("qrendertest", &PyInit_qrendertest);
 
 #if PY_VERSION_HEX > 0x030B0000
   PyConfig config;
@@ -242,12 +242,12 @@ void PythonContext::GlobalInit()
   config.parse_argv = 0;
 #endif
 
-#if defined(STATIC_QRENDERDOC)
+#if defined(STATIC_QRENDERTEST)
   // add the location where our libs will be for statically-linked python installs
   {
     QDir bin = QFileInfo(QCoreApplication::applicationFilePath()).absoluteDir();
 
-    QString pylibs = QDir::cleanPath(bin.absoluteFilePath(lit("../share/renderdoc/pylibs")));
+    QString pylibs = QDir::cleanPath(bin.absoluteFilePath(lit("../share/rendertest/pylibs")));
 
     pylibs.toWCharArray(python_home);
 
@@ -277,7 +277,7 @@ void PythonContext::GlobalInit()
   PyEval_InitThreads();
 #endif
 
-  OutputRedirectorType.tp_name = "renderdoc_output_redirector";
+  OutputRedirectorType.tp_name = "rendertest_output_redirector";
   OutputRedirectorType.tp_basicsize = sizeof(OutputRedirector);
   OutputRedirectorType.tp_flags = Py_TPFLAGS_DEFAULT;
   OutputRedirectorType.tp_doc =
@@ -291,8 +291,8 @@ void PythonContext::GlobalInit()
 
   PyObject *main_module = PyImport_AddModule("__main__");
 
-  PyModule_AddObject(main_module, "renderdoc", PyImport_ImportModule("renderdoc"));
-  PyModule_AddObject(main_module, "qrenderdoc", PyImport_ImportModule("qrenderdoc"));
+  PyModule_AddObject(main_module, "rendertest", PyImport_ImportModule("rendertest"));
+  PyModule_AddObject(main_module, "qrendertest", PyImport_ImportModule("qrendertest"));
 
   main_dict = PyModule_GetDict(main_module);
 
@@ -324,8 +324,8 @@ void PythonContext::GlobalInit()
   // sysobj = sys
   PyObject *sysobj = PyDict_GetItemString(main_dict, "sys");
 
-  // sysobj.stdout = renderdoc_output_redirector()
-  // sysobj.stderr = renderdoc_output_redirector()
+  // sysobj.stdout = rendertest_output_redirector()
+  // sysobj.stderr = rendertest_output_redirector()
   if(PyType_Ready(&OutputRedirectorType) >= 0)
   {
     // for compatibility with earlier versions of python that took a char * instead of const char *
@@ -333,7 +333,7 @@ void PythonContext::GlobalInit()
 
     PyObject *redirector = PyObject_CallFunction((PyObject *)&OutputRedirectorType, noparams);
     PyObject_SetAttrString(sysobj, "stdout", redirector);
-    PyObject_SetAttrString(sysobj, "_renderdoc_internal", redirector);
+    PyObject_SetAttrString(sysobj, "_rendertest_internal", redirector);
 
     OutputRedirector *output = (OutputRedirector *)redirector;
     output->isStdError = 0;
@@ -371,7 +371,7 @@ void PythonContext::GlobalInit()
   }
 #endif
 
-#if RENDERDOC_STABLE_BUILD == 0
+#if RENDERTEST_STABLE_BUILD == 0
   // if we're running in the git checkout and we can find the test scripts, add that location to the
   // path
   {
@@ -457,7 +457,7 @@ PythonContext::PythonContext(QObject *parent) : QObject(parent)
   PyObject *redirector = PyObject_CallFunction((PyObject *)&OutputRedirectorType, noparams);
   if(redirector)
   {
-    PyDict_SetItemString(context_namespace, "_renderdoc_internal", redirector);
+    PyDict_SetItemString(context_namespace, "_rendertest_internal", redirector);
 
     OutputRedirector *output = (OutputRedirector *)redirector;
     output->context = this;
@@ -476,7 +476,7 @@ PythonContext::PythonContext(QObject *parent) : QObject(parent)
 
       if(m_Completer)
       {
-        PyDict_SetItemString(context_namespace, "_renderdoc_completer", m_Completer);
+        PyDict_SetItemString(context_namespace, "_rendertest_completer", m_Completer);
       }
       else
       {
@@ -530,7 +530,7 @@ bool PythonContext::CheckInterfaces(rdcstr &log)
   errors |= CheckCoreInterface(log);
   errors |= CheckQtInterface(log);
 
-  for(rdcstr module_name : {"renderdoc", "qrenderdoc"})
+  for(rdcstr module_name : {"rendertest", "qrendertest"})
   {
     PyObject *mod = PyImport_ImportModule(module_name.c_str());
     PyObject *dict = PyModule_GetDict(mod);
@@ -654,10 +654,10 @@ QString PythonContext::LoadExtension(ICaptureContext &ctx, const rdcstr &extensi
 
   PyObject *ext = NULL;
 
-  current_global_handle = PyObject_SafeGetAttrString(sysobj, "_renderdoc_internal");
+  current_global_handle = PyObject_SafeGetAttrString(sysobj, "_rendertest_internal");
 
   if(!current_global_handle)
-    qCritical() << "couldn't get _renderdoc_internal";
+    qCritical() << "couldn't get _rendertest_internal";
 
   QString typeStr;
   QString valueStr;
@@ -754,7 +754,7 @@ QString PythonContext::LoadExtension(ICaptureContext &ctx, const rdcstr &extensi
   {
     extensions[extension] = ext;
 
-    PyModule_AddObject(ext, "_renderdoc_internal", current_global_handle);
+    PyModule_AddObject(ext, "_rendertest_internal", current_global_handle);
   }
 
   if(ext)
@@ -774,8 +774,8 @@ QString PythonContext::LoadExtension(ICaptureContext &ctx, const rdcstr &extensi
       }
       else
       {
-        qCritical() << "Internal error passing pyrenderdoc to extension register()";
-        ret += tr("Internal error passing pyrenderdoc to extension register()\n");
+        qCritical() << "Internal error passing pyrendertest to extension register()";
+        ret += tr("Internal error passing pyrendertest to extension register()\n");
       }
 
       if(retval == NULL)
@@ -789,12 +789,12 @@ QString PythonContext::LoadExtension(ICaptureContext &ctx, const rdcstr &extensi
 
       if(ext)
       {
-        int pyret = PyModule_AddObject(ext, "pyrenderdoc", pyctx);
+        int pyret = PyModule_AddObject(ext, "pyrendertest", pyctx);
 
         if(pyret != 0)
         {
-          qCritical() << "Couldn't set pyrenderdoc global in loaded module";
-          ret += tr("Couldn't set pyrenderdoc global in loaded module\n");
+          qCritical() << "Couldn't set pyrendertest global in loaded module";
+          ret += tr("Couldn't set pyrendertest global in loaded module\n");
           ext = NULL;
         }
       }
@@ -1123,8 +1123,8 @@ QStringList PythonContext::completionOptions(QString base)
       bool add = true;
 
       // little hack, remove some of the ugly swig template instantiations that we can't avoid.
-      if(optstr.contains(lit("renderdoc.rdcarray")) || optstr.contains(lit("renderdoc.rdcstr")) ||
-         optstr.contains(lit("renderdoc.bytebuf")))
+      if(optstr.contains(lit("rendertest.rdcarray")) || optstr.contains(lit("rendertest.rdcstr")) ||
+         optstr.contains(lit("rendertest.bytebuf")))
         add = false;
 
       if(add)
@@ -1297,7 +1297,7 @@ PyObject *PythonContext::outstream_write(PyObject *self, PyObject *args)
         if(globals)
         {
           OutputRedirector *global =
-              (OutputRedirector *)PyDict_GetItemString(globals, "_renderdoc_internal");
+              (OutputRedirector *)PyDict_GetItemString(globals, "_rendertest_internal");
           if(global)
             context = global->context;
         }
@@ -1347,7 +1347,7 @@ PyObject *PythonContext::outstream_write(PyObject *self, PyObject *args)
       }
 
       if(!message.empty())
-        RENDERDOC_LogMessage(redirector->isStdError ? LogType::Warning : LogType::Comment, "EXTN",
+        RENDERTEST_LogMessage(redirector->isStdError ? LogType::Warning : LogType::Comment, "EXTN",
                              filename, line, message);
     }
   }
@@ -1405,7 +1405,7 @@ extern "C" PyObject *GetCurrentGlobalHandle()
 {
   PyObject *frame_global_handle = NULL;
 
-  // walk the frames until we find one with _renderdoc_internal. If we call a function in another
+  // walk the frames until we find one with _rendertest_internal. If we call a function in another
   // module the globals may not have the entry, but the root level is expected to.
   {
     PyFrameObject *frame = PyEval_GetFrame();
@@ -1416,7 +1416,7 @@ extern "C" PyObject *GetCurrentGlobalHandle()
     while(frame)
     {
       PyObject *globals = PyFrame_GetGlobals(frame);
-      frame_global_handle = PyDict_GetItemString(globals, "_renderdoc_internal");
+      frame_global_handle = PyDict_GetItemString(globals, "_rendertest_internal");
       Py_XDECREF(globals);
 
       // first get the next frame without decrefing the current
@@ -1445,7 +1445,7 @@ extern "C" PyObject *GetCurrentGlobalHandle()
   PyObject *sys = PyImport_ImportModule("sys");
   if(sys)
   {
-    PyObject *ret = PyObject_SafeGetAttrString(sys, "_renderdoc_internal");
+    PyObject *ret = PyObject_SafeGetAttrString(sys, "_rendertest_internal");
 
     Py_XDECREF(sys);
     Py_XDECREF(ret);
@@ -1503,7 +1503,7 @@ extern "C" void HandleException(PyObject *global_handle)
       linenum = PyFrame_GetLineNumber(frame);
     }
 
-    RENDERDOC_LogMessage(LogType::Error, "EXTN", filename, linenum, exString);
+    RENDERTEST_LogMessage(LogType::Error, "EXTN", filename, linenum, exString);
   }
 }
 

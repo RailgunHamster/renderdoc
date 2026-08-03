@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Development|Win32">
@@ -46,7 +46,7 @@
   <PropertyGroup>
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\pymodules\</OutDir>
-    <TargetName>qrenderdoc</TargetName>
+    <TargetName>qrendertest</TargetName>
     <TargetExt>.pyd</TargetExt>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Platform)'=='x64'">
@@ -68,7 +68,7 @@
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <WarningLevel>Level4</WarningLevel>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <PreprocessorDefinitions>RENDERDOC_PLATFORM_WIN32;WIN32;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>RENDERTEST_PLATFORM_WIN32;WIN32;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <WholeProgramOptimization>false</WholeProgramOptimization>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <TreatWarningAsError>true</TreatWarningAsError>
@@ -119,7 +119,7 @@
   <ItemGroup>
     <ClCompile Include="pyrenderdoc_stub.cpp" />
     <ClCompile Include="qrenderdoc_stub.cpp" />
-    <CustomBuild Include="qrenderdoc.i">
+    <CustomBuild Include="qrendertest.i">
       <FileType>Document</FileType>
       <AdditionalInputs>%(Fullpath);$(SwigInterfaces);$(SwigHeaders);$(QRDHeaders);%(AdditionalInputs)</AdditionalInputs>
       <Command>"$(ProjectDir)..\..\3rdparty\swig\swig.exe" -v -Wextra -Werror -O -interface %(Filename) -c++ -python -modern -modernargs -enumclass -fastunpack -py3 -builtin -I"$(ProjectDir)..\.." -I"$(SolutionDir)renderdoc\api\replay" -outdir "$(IntDir)generated" -o "$(IntDir)generated\%(Filename)_module_python.cxx" "%(FullPath)"</Command>
@@ -127,11 +127,11 @@
       <Outputs>$(IntDir)generated\%(Filename).py;$(IntDir)generated\%(Filename)_module_python.cxx;%(Outputs)</Outputs>
       <LinkObjects>false</LinkObjects>
     </CustomBuild>
-    <ClCompile Include="$(IntDir)generated\qrenderdoc_module_python.cxx">
+    <ClCompile Include="$(IntDir)generated\qrendertest_module_python.cxx">
       <DisableSpecificWarnings>4127;4189;4456;4459;4701;4244;4706;4101;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <DebugInformationFormat Condition="'$(Configuration)'=='Release'">None</DebugInformationFormat>
     </ClCompile>
-    <CustomBuild Include="renderdoc.i">
+    <CustomBuild Include="rendertest.i">
       <FileType>Document</FileType>
       <AdditionalInputs>%(Fullpath);$(SwigInterfaces);$(SwigHeaders);$(CoreReplayHeaders);%(AdditionalInputs)</AdditionalInputs>
       <Command>"$(ProjectDir)..\..\3rdparty\swig\swig.exe" -v -Wextra -Werror -O -c++ -python -modern -modernargs -enumclass -fastunpack -py3 -builtin -I"$(SolutionDir)renderdoc\api\replay" -outdir "$(IntDir)generated" -o "$(IntDir)generated\%(Filename)_module_python.cxx" "%(FullPath)"</Command>
@@ -139,7 +139,7 @@
       <Outputs>$(IntDir)generated\%(Filename).py;$(IntDir)generated\%(Filename)_module_python.cxx;%(Outputs)</Outputs>
       <LinkObjects>false</LinkObjects>
     </CustomBuild>
-    <ClCompile Include="$(IntDir)generated\renderdoc_module_python.cxx">
+    <ClCompile Include="$(IntDir)generated\rendertest_module_python.cxx">
       <DisableSpecificWarnings>4127;4189;4456;4459;4701;4244;4706;4101;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <DebugInformationFormat Condition="'$(Configuration)'=='Release'">None</DebugInformationFormat>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>

@@ -53,7 +53,7 @@ DLL 里的 "renderdoc/RenderDoc/RENDERDOC" 字符串会被 ACE 反作弊按特�
 
 ```powershell
 # 用 nikki\sanitize_dll.ps1（或手动字节替换），输出 nikki\test\rendertest.dll
-# 验证：替换计数应约 600 处
+# 验证：替换计数约 295 处（路径已直接用 rendertst-nikki 后不再被替换，只剩品牌字符串）
 & "D:\git\rendertst-nikki\nikki\sanitize_dll.ps1"
 ```
 

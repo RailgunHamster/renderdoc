@@ -93,7 +93,7 @@ public:
   void finish()
   {
     std::string msg = this->str();
-    RENDERDOC_LogMessage(LogType::Comment, "EXTN", __FILE__, __LINE__, msg.c_str());
+    RENDERTEST_LogMessage(LogType::Comment, "EXTN", __FILE__, __LINE__, msg.c_str());
     fputs(msg.c_str(), file);
   }
   virtual int sync() override
@@ -103,7 +103,7 @@ public:
     if(idx >= 0)
     {
       rdcstr msg = str.substr(0, idx + 1);
-      RENDERDOC_LogMessage(LogType::Comment, "EXTN", __FILE__, __LINE__, msg);
+      RENDERTEST_LogMessage(LogType::Comment, "EXTN", __FILE__, __LINE__, msg);
       fputs(msg.c_str(), file);
       str = str.substr(idx + 1);
       this->str("");
@@ -163,12 +163,12 @@ void sharedLogOutput(QtMsgType type, const QMessageLogContext &context, const QS
     case QtFatalMsg: logtype = LogType::Fatal; break;
   }
 
-  RENDERDOC_LogMessage(logtype, "QTRD", context.file ? context.file : rdcstr(), context.line, msg);
+  RENDERTEST_LogMessage(logtype, "QTRD", context.file ? context.file : rdcstr(), context.line, msg);
 }
 
 static QString tr(const char *string)
 {
-  return QApplication::translate("qrenderdoc", string);
+  return QApplication::translate("qrendertest", string);
 }
 
 void hideOption(QCommandLineOption &opt)
@@ -193,12 +193,12 @@ int main(int argc, char *argv[])
   // an optimisation
   qputenv("QT_NO_SUBTRACTOPAQUESIBLINGS", lit("1").toUtf8());
 
-  qInfo() << "QRenderDoc initialising.";
+  qInfo() << "QRenderTest initialising.";
 
   if(IsRunningAsAdmin())
     qInfo() << "Running as administrator";
 
-#if defined(RENDERDOC_PLATFORM_LINUX) && !defined(RENDERDOC_WINDOWING_WAYLAND)
+#if defined(RENDERTEST_PLATFORM_LINUX) && !defined(RENDERTEST_WINDOWING_WAYLAND)
   bool envChanged = false;
   {
     const char *qpa_plat = getenv("QT_QPA_PLATFORM");
@@ -262,7 +262,7 @@ int main(int argc, char *argv[])
 
       Catch::Session session;
 
-      session.configData().name = "QRenderDoc";
+      session.configData().name = "QRenderTest";
       session.configData().shouldDebugBreak = Catch::isDebuggerActive();
 
       ret = session.applyCommandLine(argc, mod_argv);
@@ -282,7 +282,7 @@ int main(int argc, char *argv[])
     GlobalEnvironment env;
     env.enumerateGPUs = false;
     rdcarray<rdcstr> coreargs;
-    RENDERDOC_InitialiseReplay(env, coreargs);
+    RENDERTEST_InitialiseReplay(env, coreargs);
 
     {
       QCoreApplication application(argc, mod_argv);
@@ -311,7 +311,7 @@ int main(int argc, char *argv[])
       PythonContext::GlobalShutdown();
     }
 
-    RENDERDOC_ShutdownReplay();
+    RENDERTEST_ShutdownReplay();
 
     logbuf.finish();
 
@@ -325,7 +325,7 @@ int main(int argc, char *argv[])
   QApplication application(argc, argv);
 
   QCommandLineParser parser;
-  parser.setApplicationDescription(tr("Qt UI for RenderDoc"));
+  parser.setApplicationDescription(tr("Qt UI for RenderTest"));
   QCommandLineOption helpOption = parser.addHelpOption();
   QCommandLineOption versionOption = parser.addVersionOption();
 
@@ -388,7 +388,7 @@ int main(int argc, char *argv[])
 
   if(parser.isSet(versionOption))
   {
-    printf("QRenderDoc v%s (%s)\n", MAJOR_MINOR_VERSION_STRING, RENDERDOC_GetCommitHash());
+    printf("QRenderTest v%s (%s)\n", MAJOR_MINOR_VERSION_STRING, RENDERTEST_GetCommitHash());
 #if defined(DISTRIBUTION_VERSION)
     printf("Packaged for %s - %s\n", DISTRIBUTION_NAME, DISTRIBUTION_CONTACT);
 #endif
@@ -399,9 +399,9 @@ int main(int argc, char *argv[])
   {
     qInfo() << "Updating Vulkan layer registration";
     if(parser.value(installLayer) == lit("root"))
-      RENDERDOC_UpdateVulkanLayerRegistration(true);
+      RENDERTEST_UpdateVulkanLayerRegistration(true);
     else
-      RENDERDOC_UpdateVulkanLayerRegistration(false);
+      RENDERTEST_UpdateVulkanLayerRegistration(false);
     return 0;
   }
 
@@ -420,16 +420,16 @@ int main(int argc, char *argv[])
     qInfo() << "Finishing update as user";
     updateApplied = true;
 
-    // the renderdoccmd updater that runs us is from the old version, so older versions might be
+    // the rendertestcmd updater that runs us is from the old version, so older versions might be
     // running us as admin expecting the version number to be updated.
     // if we're not running as admin, this will immediately exit
-    RENDERDOC_UpdateInstalledVersionNumber();
+    RENDERTEST_UpdateInstalledVersionNumber();
   }
 
   if(parser.isSet(updateDoneAdmin))
   {
     qInfo() << "Finishing update as admin";
-    RENDERDOC_UpdateInstalledVersionNumber();
+    RENDERTEST_UpdateInstalledVersionNumber();
     return 0;
   }
 
@@ -459,7 +459,7 @@ int main(int argc, char *argv[])
     else
     {
       // no port specified, find the first open port.
-      ident = RENDERDOC_EnumerateRemoteTargets(host, ident);
+      ident = RENDERTEST_EnumerateRemoteTargets(host, ident);
       ok = (ident != 0);
     }
 
@@ -576,7 +576,7 @@ int main(int argc, char *argv[])
 
     {
       GlobalEnvironment env;
-#if defined(RENDERDOC_PLATFORM_LINUX)
+#if defined(RENDERTEST_PLATFORM_LINUX)
       env.xlibDisplay = QX11Info::display();
       if(QGuiApplication::platformName() == lit("wayland"))
       {
@@ -603,10 +603,10 @@ int main(int argc, char *argv[])
       if(!crashReportPath.isEmpty())
         env.enumerateGPUs = false;
 
-      RENDERDOC_InitialiseReplay(env, coreargs);
+      RENDERTEST_InitialiseReplay(env, coreargs);
     }
 
-#if defined(RENDERDOC_PLATFORM_LINUX) && !defined(RENDERDOC_WINDOWING_WAYLAND)
+#if defined(RENDERTEST_PLATFORM_LINUX) && !defined(RENDERTEST_WINDOWING_WAYLAND)
     if(envChanged)
       unsetenv("QT_QPA_PLATFORM");
 #endif
@@ -647,14 +647,14 @@ int main(int argc, char *argv[])
       }
       Analytics::Prompt(ctx, config);
 
-      ANALYTIC_SET(Metadata.RenderDocVersion, lit(FULL_VERSION_STRING));
+      ANALYTIC_SET(Metadata.RenderTestVersion, lit(FULL_VERSION_STRING));
 #if defined(DISTRIBUTION_VERSION)
       ANALYTIC_SET(Metadata.DistributionVersion, lit(DISTRIBUTION_NAME));
 #endif
       ANALYTIC_SET(Metadata.Bitness, ((sizeof(void *) == sizeof(uint64_t)) ? 64 : 32));
       ANALYTIC_SET(Metadata.OSVersion, getOSVersion());
 
-#if RENDERDOC_STABLE_BUILD
+#if RENDERTEST_STABLE_BUILD
       ANALYTIC_SET(Metadata.OfficialBuildRun, true);
 #else
       ANALYTIC_SET(Metadata.DevelBuildRun, true);
@@ -670,7 +670,7 @@ int main(int argc, char *argv[])
 
         ANALYTIC_SET(UIFeatures.PythonInterop, true);
 
-        py.ctx().setGlobal("pyrenderdoc", (ICaptureContext *)&ctx);
+        py.ctx().setGlobal("pyrendertest", (ICaptureContext *)&ctx);
 
         QObject::connect(
             &py.ctx(), &PythonContext::exception,
@@ -736,7 +736,7 @@ int main(int argc, char *argv[])
       config.Save();
     }
 
-    RENDERDOC_ShutdownReplay();
+    RENDERTEST_ShutdownReplay();
 
     PythonContext::GlobalShutdown();
 

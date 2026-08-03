@@ -34,7 +34,7 @@ AboutDialog::AboutDialog(QWidget *parent) : QDialog(parent), ui(new Ui::AboutDia
 {
   ui->setupUi(this);
 
-  QString hash = QString::fromLatin1(RENDERDOC_GetCommitHash());
+  QString hash = QString::fromLatin1(RENDERTEST_GetCommitHash());
 
   if(hash[0] == QLatin1Char('N') && hash[1] == QLatin1Char('O'))
   {
@@ -44,7 +44,7 @@ AboutDialog::AboutDialog(QWidget *parent) : QDialog(parent), ui(new Ui::AboutDia
   {
     ui->version->setText(tr("Version %1 (built from <a href='%2'>%3</a>)")
                              .arg(lit(FULL_VERSION_STRING))
-                             .arg(lit("https://github.com/baldurk/renderdoc/commit/%1").arg(hash))
+                             .arg(lit("https://github.com/baldurk/rendertest/commit/%1").arg(hash))
                              .arg(hash.left(8)));
   }
 

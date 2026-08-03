@@ -48,3 +48,11 @@ qrenderdoc/3rdparty/pyside
 .DS_Store
 plugins-*/
 __pycache__
+
+# qmake/uic/swig build artifacts
+.qmake.stash
+qrenderdoc/ui_*.h
+qrenderdoc/rendertest.py
+qrenderdoc/qrendertest.py
+qrenderdoc/*_python.cxx
+qrenderdoc/out.log

@@ -1,4 +1,4 @@
-// this file is included from renderdoc.i, it's not a module in itself
+// this file is included from rendertest.i, it's not a module in itself
 
 %define STRINGIZE(val) #val %enddef
 

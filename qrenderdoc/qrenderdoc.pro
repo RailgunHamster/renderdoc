@@ -12,7 +12,7 @@ lessThan(QT_MAJOR_VERSION, 5): error("requires Qt 5.6; found $$[QT_VERSION]")
 
 equals(QT_MAJOR_VERSION, 5): lessThan(QT_MINOR_VERSION, 6): error("requires Qt 5.6; found $$[QT_VERSION]")
 
-TARGET = qrenderdoc
+TARGET = qrendertest
 TEMPLATE = app
 
 # include path for core renderdoc API
@@ -36,7 +36,13 @@ DEFINES += QT_NO_CAST_FROM_ASCII QT_NO_CAST_TO_ASCII
 DEFINES += QT_NO_DEPRECATED_WARNINGS
 
 # HA HA good joke, QT_NO_DEPRECATED_WARNINGS only covers SOME warnings, not all
-QMAKE_CXXFLAGS += -Wno-deprecated-declarations
+!win32: QMAKE_CXXFLAGS += -Wno-deprecated-declarations
+
+# Newer MSVC removed stdext checked iterators that Qt 5.15 still uses; inject compat shims
+win32: QMAKE_CXXFLAGS += /FI$$_PRO_FILE_PWD_/3rdparty/stdext_compat.h
+
+# SWIG-generated python wrappers are huge
+win32: QMAKE_CXXFLAGS += /bigobj
 
 # Different output folders per platform
 win32 {
@@ -70,8 +76,8 @@ win32 {
 	# add qrc file with qt.conf
 	RESOURCES += Resources/qtconf.qrc
 
-	SWIGSOURCES += Code/pyrenderdoc/renderdoc.i
-	SWIGSOURCES += Code/pyrenderdoc/qrenderdoc.i
+	SWIGSOURCES += Code/pyrenderdoc/rendertest.i
+	SWIGSOURCES += Code/pyrenderdoc/qrendertest.i
 
 	# Include and link against python
 	INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/python/include
@@ -99,13 +105,13 @@ win32 {
 	LIBS += user32.lib
 
 	# Link against the core library
-	LIBS += $$DESTDIR/renderdoc.lib
+	LIBS += $$DESTDIR/rendertest.lib
 
 	# Link against the version library
 	LIBS += $$DESTDIR/version.lib
 
 	QMAKE_CXXFLAGS_WARN_ON -= -w34100 
-	DEFINES += RENDERDOC_PLATFORM_WIN32
+	DEFINES += RENDERTEST_PLATFORM_WIN32
 
 } else {
 	isEmpty(CMAKE_DIR) {
@@ -396,6 +402,7 @@ RESOURCES += Resources/resources.qrc
 
 # Add ToolWindowManager
 
+SOURCES += $$_PRO_FILE_PWD_/release/moc_ScintillaQt.cpp
 SOURCES += 3rdparty/toolwindowmanager/ToolWindowManager.cpp \
     3rdparty/toolwindowmanager/ToolWindowManagerArea.cpp \
     3rdparty/toolwindowmanager/ToolWindowManagerSplitter.cpp \
@@ -424,14 +431,117 @@ DEFINES += SCINTILLA_QT=1 MAKING_LIBRARY=1 SCI_LEXER=1
 INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/scintilla/src
 INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/scintilla/lexlib
 
-SOURCES += $$_PRO_FILE_PWD_/3rdparty/scintilla/lexlib/*.cxx \
-    $$_PRO_FILE_PWD_/3rdparty/scintilla/lexers/*.cxx \
-    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/*.cxx \
-    $$_PRO_FILE_PWD_/3rdparty/scintilla/qt/ScintillaEdit/*.cpp \
-    $$_PRO_FILE_PWD_/3rdparty/scintilla/qt/ScintillaEditBase/*.cpp
+SOURCES += \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/lexers/LexCPP.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/lexers/LexDiff.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/lexers/LexErrorList.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/lexers/LexHTML.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/lexers/LexJSON.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/lexers/LexNull.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/lexers/LexPython.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/lexers/LexRust.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/lexlib/Accessor.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/lexlib/CharacterCategory.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/lexlib/CharacterSet.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/lexlib/LexerBase.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/lexlib/LexerModule.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/lexlib/LexerNoExceptions.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/lexlib/LexerSimple.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/lexlib/PropSetSimple.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/lexlib/StyleContext.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/lexlib/WordList.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/qt/ScintillaEditBase/PlatQt.cpp \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/qt/ScintillaEditBase/ScintillaEditBase.cpp \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/qt/ScintillaEditBase/ScintillaQt.cpp \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/qt/ScintillaEditBase/ScintillaQt.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/qt/ScintillaEdit/ScintillaDocument.cpp \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/qt/ScintillaEdit/ScintillaEdit.cpp \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/AutoComplete.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/CallTip.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/CaseConvert.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/CaseFolder.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/Catalogue.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/CellBuffer.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/CharClassify.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/ContractionState.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/Decoration.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/Document.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/EditModel.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/Editor.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/EditView.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/ExternalLexer.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/Indicator.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/KeyMap.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/LineMarker.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/MarginView.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/PerLine.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/PositionCache.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/RESearch.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/RunStyles.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/ScintillaBase.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/Selection.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/Style.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/UniConversion.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/ViewStyle.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/XPM.cxx
 
-HEADERS += $$_PRO_FILE_PWD_/3rdparty/scintilla/lexlib/*.h \
-    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/*.h \
-    $$_PRO_FILE_PWD_/3rdparty/scintilla/qt/ScintillaEdit/*.h \
-    $$_PRO_FILE_PWD_/3rdparty/scintilla/qt/ScintillaEditBase/*.h
-
+HEADERS += \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/include/ILexer.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/include/Platform.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/include/qt/ScintillaDocument.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/include/qt/ScintillaEdit.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/include/qt/ScintillaEditBase.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/include/SciLexer.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/include/Scintilla.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/include/ScintillaWidget.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/include/Sci_Position.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/lexlib/Accessor.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/lexlib/CharacterCategory.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/lexlib/CharacterSet.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/lexlib/LexAccessor.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/lexlib/LexerBase.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/lexlib/LexerModule.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/lexlib/LexerNoExceptions.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/lexlib/LexerSimple.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/lexlib/OptionSet.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/lexlib/PropSetSimple.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/lexlib/SparseState.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/lexlib/StringCopy.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/lexlib/StyleContext.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/lexlib/SubStyles.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/lexlib/WordList.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/qt/ScintillaEditBase/PlatQt.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/AutoComplete.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/CallTip.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/CaseConvert.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/CaseFolder.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/Catalogue.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/CellBuffer.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/CharClassify.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/ContractionState.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/Decoration.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/Document.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/EditModel.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/Editor.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/EditView.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/ExternalLexer.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/FontQuality.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/Indicator.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/KeyMap.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/LineMarker.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/MarginView.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/Partitioning.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/PerLine.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/Position.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/PositionCache.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/RESearch.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/RunStyles.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/ScintillaBase.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/Selection.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/SparseVector.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/SplitVector.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/Style.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/UnicodeFromUTF8.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/UniConversion.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/ViewStyle.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/XPM.h
